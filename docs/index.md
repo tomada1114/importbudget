@@ -18,11 +18,18 @@ Profile, safely convert, and CI-budget Python import time with PEP 810 lazy impo
 
 ## Quick Example
 
-```python
-from importbudget import add
+Attribute your startup import time to the statements that caused it:
 
-result = add(1, 2)
-print(result)  # 3
+```bash
+importbudget profile mypackage --top 10
+```
+
+```python
+from importbudget import profile, render_json, render_table
+
+result = profile("mypackage")
+print(render_table(result, top=10))
+print(render_json(result))  # stable, versioned JSON contract
 ```
 
 ## Next Steps

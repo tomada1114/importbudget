@@ -22,6 +22,9 @@ classifiers = [
     "Typing :: Typed",
 ]
 
+[project.scripts]
+importbudget = "importbudget.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/tomada1114/importbudget"
 Documentation = "https://tomada1114.github.io/importbudget"
@@ -55,6 +58,9 @@ packages = ["src/importbudget"]
 target-version = "py312"
 line-length = 88
 src = ["src", "tests", "scripts"]
+# Test fixture packages are measurement subjects, not project code: they hold
+# deliberately dead, duplicated and dynamic imports that lint rules would flag.
+extend-exclude = ["tests/fixtures"]
 
 [tool.ruff.lint]
 select = [
@@ -144,6 +150,8 @@ indent-style = "space"
 [tool.mypy]
 python_version = "3.12"
 strict = true
+# See the ruff note above: test fixture packages are measurement subjects.
+exclude = ["^tests/fixtures/"]
 warn_return_any = true
 warn_unused_configs = true
 warn_unused_ignores = true

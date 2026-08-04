@@ -27,9 +27,23 @@ in the `justfile`. Run a single test with
 
 ```
 src/importbudget/
-├── __init__.py   # Public API — export everything users need here
-├── py.typed      # PEP 561 marker for typed package
-└── core.py       # Placeholder module — replace and re-export via __init__.py
+├── __init__.py     # Public API — export everything users need here
+├── __main__.py     # `python -m importbudget`
+├── py.typed        # PEP 561 marker for typed package
+├── errors.py       # Exception hierarchy (ImportBudgetError and friends)
+├── entrypoints.py  # Value objects: Entrypoint, RunOptions, Measurement
+├── importtime.py   # `-X importtime` stderr parser + import tree
+├── stderr.py       # Capped capture of the entrypoint's own stderr
+├── averaging.py    # Mean of several runs, totals kept exact
+├── measure.py      # Child processes, baseline, run collection
+├── sources.py      # AST scan: one file -> import statements
+├── _names.py       # Statement -> candidate module names
+├── index.py        # Per-file scans -> the modules we own
+├── _resolve.py     # Measured node -> the statement that imported it
+├── attribute.py    # Self time -> the statement that caused it
+├── profiler.py     # profile(): measure + attribute in one session
+├── report.py       # Human table + versioned JSON document
+└── cli.py          # argparse command line (profile)
 ```
 
 - Keep the public API surface small — export via `__init__.py.__all__`

@@ -1,0 +1,62 @@
+"""Tests for the public package interface."""
+
+from __future__ import annotations
+
+import importlib
+import importlib.metadata as importlib_metadata
+from importlib.metadata import PackageNotFoundError, version
+
+import importbudget
+from importbudget import __all__, __version__
+
+
+class TestPublicApi:
+    def test_exports_the_profiling_entry_points(self):
+        assert set(__all__) == {
+            "SCHEMA_VERSION",
+            "Attribution",
+            "AttributionKind",
+            "AttributionResult",
+            "Entrypoint",
+            "EntrypointError",
+            "EntrypointKind",
+            "ForeignStderr",
+            "ImportBudgetError",
+            "Measurement",
+            "MeasurementError",
+            "ProfileResult",
+            "RunOptions",
+            "SourceScanError",
+            "__version__",
+            "profile",
+            "render_json",
+            "render_table",
+            "to_json_dict",
+        }
+
+    def test_every_exported_name_exists(self):
+        for name in __all__:
+            assert hasattr(importbudget, name), name
+
+    def test_errors_share_one_base_class(self):
+        assert issubclass(importbudget.MeasurementError, importbudget.ImportBudgetError)
+        assert issubclass(importbudget.EntrypointError, importbudget.ImportBudgetError)
+        assert issubclass(importbudget.SourceScanError, importbudget.ImportBudgetError)
+
+
+class TestPackageMetadata:
+    def test_version_matches_installed_metadata(self):
+        assert __version__ == version("importbudget")
+
+    def test_version_falls_back_when_package_not_installed(self, monkeypatch):
+        module = importlib.import_module("importbudget._version")
+
+        def fake_version(_: str) -> str:
+            raise PackageNotFoundError
+
+        with monkeypatch.context() as patched:
+            patched.setattr(importlib_metadata, "version", fake_version)
+            reloaded = importlib.reload(module)
+
+        assert reloaded.__version__ == "0.0.0+unknown"
+        importlib.reload(module)

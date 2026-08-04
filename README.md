@@ -16,10 +16,17 @@ pip install importbudget
 uv add importbudget
 ```
 
-```python
-from importbudget import add
+```bash
+importbudget profile mypackage          # import the package
+importbudget profile -m mypackage.cli   # run it with -m
+importbudget profile scripts/run.py     # run a script
+```
 
-result = add(1, 2)  # 3
+```python
+from importbudget import profile, render_table
+
+result = profile("mypackage")
+print(render_table(result, top=10))
 ```
 
 ## Design Philosophy
