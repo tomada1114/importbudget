@@ -1,4 +1,4 @@
-# my-package
+# importbudget
 
 A short description of what this library does.
 
@@ -7,19 +7,19 @@ A short description of what this library does.
 === "pip"
 
     ```bash
-    pip install my-package
+    pip install importbudget
     ```
 
 === "uv"
 
     ```bash
-    uv add my-package
+    uv add importbudget
     ```
 
 ## Quick Example
 
 ```python
-from my_package import add
+from importbudget import add
 
 result = add(1, 2)
 print(result)  # 3
