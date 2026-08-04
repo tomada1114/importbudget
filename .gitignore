@@ -44,3 +44,7 @@ site/
 # OS
 .DS_Store
 Thumbs.db
+
+# Private working notes (kept out of version control)
+PROJECT_PLAN.md
+PROGRESS.md
