@@ -59,5 +59,6 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - PEP 810 Constraints: pep810-rules.md
   - API Reference: reference.md
   - Contributing: contributing.md
