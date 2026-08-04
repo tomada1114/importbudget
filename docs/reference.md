@@ -28,9 +28,23 @@
 
 ::: importbudget.profiler
 
+## Safety rules
+
+::: importbudget.rules
+
+::: importbudget.analyze
+
+## Planning
+
+::: importbudget.plans
+
+::: importbudget.planner
+
 ## Reporting
 
 ::: importbudget.report
+
+::: importbudget.plan_report
 
 ## Command line
 

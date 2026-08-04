@@ -32,6 +32,26 @@ class TestParser:
 
         assert (args.module, args.runs, args.top, args.json) == (True, 5, 3, True)
 
+    def test_plan_defaults_match_the_profile_command(self):
+        args = build_parser().parse_args(["plan", "demopkg"])
+
+        assert args.command == "plan"
+        assert args.entrypoint == "demopkg"
+        assert args.runs == DEFAULT_RUNS
+        assert args.warmup == DEFAULT_WARMUP_RUNS
+        assert args.top == DEFAULT_TOP
+        assert args.min_ms == 0.0
+        assert args.from_profile is None
+
+    def test_plan_accepts_a_saved_profile_instead_of_an_entrypoint(self):
+        args = build_parser().parse_args(
+            ["plan", "--from-profile", "p.json", "--min-ms", "2.5"]
+        )
+
+        assert args.entrypoint is None
+        assert args.from_profile == "p.json"
+        assert args.min_ms == 2.5
+
     def test_a_subcommand_is_required(self):
         with pytest.raises(SystemExit) as exit_info:
             build_parser().parse_args([])
@@ -117,6 +137,99 @@ class TestMain:
         assert "hello from the app" in document["stderr"]["lines"]
         assert document["stderr"]["suppressed"] == 0
         assert not any("hello from the app" in w for w in document["warnings"])
+
+
+class TestPlanCommand:
+    def test_the_table_separates_proposed_from_excluded(
+        self, project_dir, monkeypatch, capsys
+    ):
+        monkeypatch.chdir(project_dir)
+
+        code = main(["plan", "demopkg", "--runs", "1", "--warmup", "0", "--top", "0"])
+
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "proposed - proved safe to make lazy" in out
+        assert "excluded - not proven safe" in out
+        assert "demopkg/util.py:3" in out
+        assert "MODULE_LEVEL_USE" in out
+
+    def test_json_output_is_a_plan_document(self, project_dir, monkeypatch, capsys):
+        monkeypatch.chdir(project_dir)
+
+        code = main(
+            ["plan", "demopkg", "--runs", "1", "--warmup", "0", "--json"],
+        )
+
+        document = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert document["document"] == "plan"
+        assert document["schema_version"] == 1
+        assert document["totals"]["candidate_count"] > 0
+
+    def test_from_profile_round_trips_a_saved_profile(
+        self, project_dir, tmp_path, monkeypatch, capsys
+    ):
+        monkeypatch.chdir(project_dir)
+        main(["profile", "demopkg", "--runs", "1", "--warmup", "0", "--json"])
+        saved = tmp_path / "profile.json"
+        saved.write_text(capsys.readouterr().out, encoding="utf-8")
+
+        code = main(["plan", "--from-profile", str(saved), "--json"])
+
+        document = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert document["profile"]["origin"] == saved.as_posix()
+        assert any(s["verdict"] == "safe" for s in document["statements"])
+
+    def test_min_ms_moves_cheap_statements_out_of_the_proposal(
+        self, project_dir, monkeypatch, capsys
+    ):
+        monkeypatch.chdir(project_dir)
+
+        main(
+            [
+                "plan",
+                "demopkg",
+                "--runs",
+                "1",
+                "--warmup",
+                "0",
+                "--min-ms",
+                "1000",
+                "--json",
+            ]
+        )
+
+        document = json.loads(capsys.readouterr().out)
+        assert document["totals"]["predicted_saving_us"] == 0
+        assert document["totals"]["below_threshold_count"] > 0
+
+    def test_neither_input_form_is_an_error(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+
+        code = main(["plan"])
+
+        assert code == 1
+        assert "needs an entrypoint, or --from-profile" in capsys.readouterr().err
+
+    def test_both_input_forms_at_once_is_an_error(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+
+        code = main(["plan", "demopkg", "--from-profile", "p.json"])
+
+        assert code == 1
+        assert "not both" in capsys.readouterr().err
+
+    def test_an_unreadable_profile_document_exits_with_a_message(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        monkeypatch.chdir(tmp_path)
+
+        code = main(["plan", "--from-profile", str(tmp_path / "nope.json")])
+
+        assert code == 1
+        assert "could not read profile document" in capsys.readouterr().err
 
 
 class TestModuleExecution:

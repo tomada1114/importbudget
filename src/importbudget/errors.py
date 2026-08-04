@@ -17,3 +17,7 @@ class MeasurementError(ImportBudgetError):
 
 class SourceScanError(ImportBudgetError):
     """A source file could not be parsed while collecting import statements."""
+
+
+class PlanInputError(ImportBudgetError):
+    """A saved profile document could not be consumed by ``plan``."""

@@ -9,24 +9,28 @@ subprocess; only the measurement and CLI tests actually run interpreters.
 from __future__ import annotations
 
 import sys
+import textwrap
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
+from importbudget.analyze import analyze
 from importbudget.entrypoints import Entrypoint, Measurement
 from importbudget.importtime import parse_importtime
 from importbudget.index import scan_package
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Sequence
 
+    from importbudget.analyze import Verdict
     from importbudget.attribute import Attribution, AttributionResult
     from importbudget.importtime import ImportNode, ImportTree
     from importbudget.index import SourceIndex
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 PROJECT_DIR = FIXTURES_DIR / "project"
+ADVERSARIAL_DIR = FIXTURES_DIR / "adversarial"
 DEMOPKG_CAPTURE = FIXTURES_DIR / "importtime_demopkg.txt"
 BASELINE_CAPTURE = FIXTURES_DIR / "importtime_baseline.txt"
 
@@ -90,6 +94,42 @@ def demopkg_measurement(
     baseline_modules: frozenset[str],
 ) -> Measurement:
     return make_measurement(demopkg_capture, baseline=baseline_modules)
+
+
+@pytest.fixture
+def adversarial_dir() -> Path:
+    return ADVERSARIAL_DIR
+
+
+@pytest.fixture
+def judge(tmp_path: Path) -> Callable[..., tuple[Verdict, ...]]:
+    """Return a factory writing a module and analyzing it with the rule set."""
+
+    def factory(
+        source: str,
+        *,
+        name: str = "sample.py",
+        module: str = "sample",
+    ) -> tuple[Verdict, ...]:
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(textwrap.dedent(source).lstrip(), encoding="utf-8")
+        return analyze(path, module, root=tmp_path)
+
+    return factory
+
+
+def codes_by_source(verdicts: Sequence[Verdict]) -> dict[str, set[str]]:
+    """Return each statement's source line mapped to its firing reason codes."""
+    return {
+        verdict.statement.source: {str(code) for code in verdict.codes}
+        for verdict in verdicts
+    }
+
+
+def safe_sources(verdicts: Sequence[Verdict]) -> set[str]:
+    """Return the source lines of every statement judged safe."""
+    return {verdict.statement.source for verdict in verdicts if verdict.is_safe}
 
 
 def node_by_name(tree: ImportTree, name: str) -> ImportNode:

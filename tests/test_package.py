@@ -12,7 +12,7 @@ from importbudget import __all__, __version__
 
 class TestPublicApi:
     def test_exports_the_profiling_entry_points(self):
-        assert set(__all__) == {
+        assert set(__all__) >= {
             "SCHEMA_VERSION",
             "Attribution",
             "AttributionKind",
@@ -34,6 +34,34 @@ class TestPublicApi:
             "to_json_dict",
         }
 
+    def test_exports_the_planning_entry_points(self):
+        assert set(__all__) >= {
+            "PLAN_DOCUMENT",
+            "PROFILE_DOCUMENT",
+            "RULES",
+            "Analyzer",
+            "PlanEntry",
+            "PlanInputError",
+            "PlanOptions",
+            "PlanResult",
+            "PlanStatus",
+            "PlanTotals",
+            "ProfileSummary",
+            "Rule",
+            "RuleCode",
+            "Verdict",
+            "Violation",
+            "analyze",
+            "plan",
+            "plan_from_profile",
+            "render_plan_json",
+            "render_plan_table",
+            "to_plan_json_dict",
+        }
+
+    def test_the_public_surface_is_exactly_these_two_groups(self):
+        assert len(__all__) == 40
+
     def test_every_exported_name_exists(self):
         for name in __all__:
             assert hasattr(importbudget, name), name
@@ -42,6 +70,7 @@ class TestPublicApi:
         assert issubclass(importbudget.MeasurementError, importbudget.ImportBudgetError)
         assert issubclass(importbudget.EntrypointError, importbudget.ImportBudgetError)
         assert issubclass(importbudget.SourceScanError, importbudget.ImportBudgetError)
+        assert issubclass(importbudget.PlanInputError, importbudget.ImportBudgetError)
 
 
 class TestPackageMetadata:

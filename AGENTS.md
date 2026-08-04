@@ -36,15 +36,28 @@ src/importbudget/
 ├── stderr.py       # Capped capture of the entrypoint's own stderr
 ├── averaging.py    # Mean of several runs, totals kept exact
 ├── measure.py      # Child processes, baseline, run collection
-├── sources.py      # AST scan: one file -> import statements
+├── sources.py      # AST scan: one file -> import statements (+ the tree)
 ├── _names.py       # Statement -> candidate module names
 ├── index.py        # Per-file scans -> the modules we own
 ├── _resolve.py     # Measured node -> the statement that imported it
 ├── attribute.py    # Self time -> the statement that caused it
 ├── profiler.py     # profile(): measure + attribute in one session
-├── report.py       # Human table + versioned JSON document
-└── cli.py          # argparse command line (profile)
+├── rules/          # Safety rules, one per file, each with a reason code
+│   ├── _rule.py      # Rule protocol, RuleCode, Violation
+│   ├── _context.py   # Per-module AST facts every rule shares
+│   └── <rule>.py     # star_import, future_import, non_toplevel, ...
+├── analyze.py      # Whitelist engine: every rule over every statement
+├── plans.py        # Value objects: PlanOptions, PlanEntry, PlanResult, ...
+├── _plan_input.py  # Saved profile JSON -> planner inputs
+├── planner.py      # plan(): verdicts joined with attributed cost
+├── report.py       # Human table + versioned JSON document (profile)
+├── plan_report.py  # Human table + versioned JSON document (plan)
+└── cli.py          # argparse command line (profile, plan)
 ```
+
+Every rule cites the constraint IDs it rests on from `docs/pep810-rules.md`,
+the verified PEP 810 constraint table. Rules never invent semantics beyond
+that document, and a rule that cannot decide rejects rather than abstains.
 
 - Keep the public API surface small — export via `__init__.py.__all__`
 - Internal modules can use a leading underscore (`_internal.py`)

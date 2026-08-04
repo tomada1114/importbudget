@@ -52,6 +52,44 @@ result = profile("mypackage", RunOptions(runs=3, warmup=1))
 print(render_table(result, top=10))
 ```
 
+## Planning lazy imports
+
+`importbudget plan` joins a profile with the PEP 810 safety rules and proposes
+the import statements that can safely become `lazy` imports:
+
+```bash
+importbudget plan mypackage                    # measure, then plan
+importbudget plan --from-profile profile.json  # plan from a saved profile
+```
+
+It accepts the same entrypoint forms and the same `--runs` / `--warmup` /
+`--top` / `--json` flags as `profile`, plus:
+
+| Flag | Meaning |
+|---|---|
+| `--from-profile PATH` | plan from a saved `profile --json` document instead of measuring; `--runs` and `--warmup` are then unused |
+| `--min-ms X` | do not propose statements attributed less than X ms; they are still listed, as skipped by the threshold (default 0) |
+
+!!! note "Excluded means *not proven safe*"
+
+    The rule set is a whitelist: a statement is proposed only when every rule
+    proves it convertible, and a rule that cannot decide rejects rather than
+    abstains. Each excluded row carries machine-readable reason codes
+    (`STAR_IMPORT`, `TRY_EXCEPT_IMPORT`, `MODULE_LEVEL_USE`, …) so you can
+    branch on them in scripts.
+
+    The predicted saving is an **upper bound**, not a promise: a module is paid
+    for once, by whichever statement imports it first, so converting several
+    statements saves less than the sum of their rows. Measure the real
+    difference after converting.
+
+```python
+from importbudget import PlanOptions, plan, render_plan_table
+
+result = plan("mypackage", PlanOptions(min_us=5000))
+print(render_plan_table(result))
+```
+
 ## What's Next?
 
 See the [API Reference](reference.md) for the complete API documentation.

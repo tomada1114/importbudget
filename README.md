@@ -29,6 +29,24 @@ result = profile("mypackage")
 print(render_table(result, top=10))
 ```
 
+Then ask which of those imports can safely become PEP 810 `lazy` imports:
+
+```bash
+importbudget plan mypackage                        # measure, then plan
+importbudget plan --from-profile profile.json      # plan without re-measuring
+importbudget plan mypackage --min-ms 5             # ignore sub-5 ms wins
+```
+
+```python
+from importbudget import plan, render_plan_table
+
+print(render_plan_table(plan("mypackage")))
+```
+
+`plan` is a whitelist: a statement is proposed only when every safety rule
+proves it convertible. Everything else is listed with the reason code that
+rejected it, so "excluded" means *not proven safe*, not *unsafe*.
+
 ## Design Philosophy
 
 Every choice in this template has a reason. If you disagree with a decision,

@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 __all__ = [
     "DynamicImport",
     "ImportStatement",
+    "scan_module",
     "scan_source",
 ]
 
@@ -108,17 +109,31 @@ def scan_source(
     *,
     root: Path | None = None,
 ) -> tuple[tuple[ImportStatement, ...], tuple[DynamicImport, ...]]:
-    """Collect import statements and dynamic import calls from one file.
+    """Collect one file's imports, dropping the AST :func:`scan_module` keeps.
+
+    Raises the same :class:`~importbudget.errors.SourceScanError`.
+    """
+    _tree, statements, dynamic = scan_module(path, module, root=root)
+    return statements, dynamic
+
+
+def scan_module(
+    path: Path,
+    module: str,
+    *,
+    root: Path | None = None,
+) -> tuple[ast.Module, tuple[ImportStatement, ...], tuple[DynamicImport, ...]]:
+    """Parse one file and collect its imports, keeping the parsed tree.
 
     Args:
         path: Source file to parse.
-        module: Dotted name of that file's module (for a package
-            ``__init__.py`` pass the package name itself).
+        module: Dotted module name; for a package pass the package name.
         root: Directory display paths are made relative to.
 
     Returns:
-        The file's import statements and dynamic import call sites, each in
-        source order.
+        The parsed module — kept so the rules package need not re-parse the
+        file — plus its import statements and dynamic import calls, the latter
+        two in source order.
 
     Raises:
         SourceScanError: The file could not be read or parsed.
@@ -129,7 +144,6 @@ def scan_source(
     except (OSError, SyntaxError, ValueError) as exc:
         msg = f"could not scan {path}: {exc}"
         raise SourceScanError(msg) from exc
-
     context = _FileContext(
         path=path,
         module=module,
@@ -137,6 +151,7 @@ def scan_source(
         lines=text.splitlines(),
     )
     return (
+        tree,
         tuple(sorted(_import_statements(tree, context), key=_position)),
         tuple(sorted(_dynamic_imports(tree, context), key=lambda c: c.lineno)),
     )

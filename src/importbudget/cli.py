@@ -13,11 +13,17 @@ from typing import TYPE_CHECKING
 from ._version import __version__
 from .errors import ImportBudgetError
 from .measure import DEFAULT_RUNS, DEFAULT_WARMUP_RUNS, Entrypoint, RunOptions
+from .plan_report import render_plan_json, render_plan_table
+from .planner import plan, plan_from_profile
+from .plans import PlanOptions
 from .profiler import profile
 from .report import render_json, render_table
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from .plans import PlanResult
+
 
 __all__ = ["build_parser", "main"]
 
@@ -25,6 +31,7 @@ DEFAULT_TOP = 10
 
 _EXIT_OK = 0
 _EXIT_ERROR = 1
+_US_PER_MS = 1000
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -42,6 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
     _add_profile_parser(subparsers)
+    _add_plan_parser(subparsers)
     return parser
 
 
@@ -70,6 +78,56 @@ def _add_profile_parser(
     _add_measurement_flags(profile_parser)
 
 
+def _add_plan_parser(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Register the ``plan`` subcommand and its flags."""
+    plan_parser = subparsers.add_parser(
+        "plan",
+        help="propose the import statements that can safely be made lazy",
+        description=(
+            "Join a profile with the PEP 810 safety rules. A statement is "
+            "proposed only when every rule proves it safe; everything else is "
+            "listed with the machine-readable codes that rejected it."
+        ),
+    )
+    plan_parser.add_argument(
+        "entrypoint",
+        nargs="?",
+        help="module to import, module to run with -m, or a script path",
+    )
+    _add_plan_flags(plan_parser)
+    _add_measurement_flags(plan_parser)
+
+
+def _add_plan_flags(plan_parser: argparse.ArgumentParser) -> None:
+    """Register the flags unique to ``plan``."""
+    plan_parser.add_argument(
+        "-m",
+        "--module",
+        action="store_true",
+        help="run the entrypoint with -m instead of importing it",
+    )
+    plan_parser.add_argument(
+        "--from-profile",
+        metavar="PATH",
+        help=(
+            "plan from a saved `profile --json` document instead of measuring; "
+            "--runs and --warmup are then unused"
+        ),
+    )
+    plan_parser.add_argument(
+        "--min-ms",
+        type=float,
+        default=0.0,
+        metavar="X",
+        help=(
+            "do not propose statements attributed less than X ms; they are "
+            "still listed, as skipped by the threshold (default: 0)"
+        ),
+    )
+
+
 def _add_measurement_flags(profile_parser: argparse.ArgumentParser) -> None:
     """Register the flags controlling how much is measured and shown."""
     profile_parser.add_argument(
@@ -95,7 +153,7 @@ def _add_measurement_flags(profile_parser: argparse.ArgumentParser) -> None:
         default=DEFAULT_TOP,
         metavar="N",
         help=(
-            f"statements to show in the table, 0 for all (default: "
+            f"statements to show per table section, 0 for all (default: "
             f"{DEFAULT_TOP}); JSON output always contains every statement"
         ),
     )
@@ -115,11 +173,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     Returns:
         Process exit code: 0 on success, 1 when profiling failed.
     """
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
     try:
-        return _run_profile(args)
-    # ValueError covers out-of-range --runs / --warmup values, which argparse
-    # cannot reject on its own.
+        return _run_plan(args) if args.command == "plan" else _run_profile(args)
+    # ValueError covers out-of-range --runs / --warmup / --min-ms values, which
+    # argparse cannot reject on its own.
     except (ImportBudgetError, ValueError) as error:
         print(f"importbudget: {error}", file=sys.stderr)  # noqa: T201
         return _EXIT_ERROR
@@ -133,6 +192,41 @@ def _run_profile(args: argparse.Namespace) -> int:
     output = render_json(result) if args.json else render_table(result, top=args.top)
     print(output)  # noqa: T201 — stdout is this command's output channel
     return _EXIT_OK
+
+
+def _run_plan(args: argparse.Namespace) -> int:
+    """Execute the ``plan`` subcommand.
+
+    Raises:
+        ValueError: Neither an entrypoint nor ``--from-profile`` was given, or
+            both were.
+    """
+    result = _plan_result(args)
+    output = (
+        render_plan_json(result)
+        if args.json
+        else render_plan_table(result, top=args.top)
+    )
+    print(output)  # noqa: T201 — stdout is this command's output channel
+    return _EXIT_OK
+
+
+def _plan_result(args: argparse.Namespace) -> PlanResult:
+    """Build the plan from whichever input form the user chose."""
+    options = PlanOptions(
+        run=RunOptions(runs=args.runs, warmup=args.warmup),
+        min_us=round(args.min_ms * _US_PER_MS),
+    )
+    if args.from_profile:
+        if args.entrypoint:
+            msg = "give either an entrypoint or --from-profile, not both"
+            raise ValueError(msg)
+        return plan_from_profile(args.from_profile, options)
+    if not args.entrypoint:
+        msg = "plan needs an entrypoint, or --from-profile PATH"
+        raise ValueError(msg)
+    entrypoint = Entrypoint.parse(args.entrypoint, run_module=args.module)
+    return plan(entrypoint, options)
 
 
 if __name__ == "__main__":  # pragma: no cover - exercised via __main__.py

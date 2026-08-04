@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `importbudget plan` — joins a profile with the PEP 810 safety rules and
+  proposes the import statements that can safely become `lazy` imports.
+  Accepts the same entrypoint forms as `profile`, or `--from-profile
+  path.json` to plan from a saved profile without re-measuring. Supports
+  `--min-ms` / `--runs` / `--warmup` / `--top` / `--json`
+- `importbudget.rules` — the whitelist rule set, one rule per file, each with a
+  machine-readable reason code (`STAR_IMPORT`, `FUTURE_IMPORT`,
+  `NON_TOPLEVEL`, `TRY_EXCEPT_IMPORT`, `MODULE_LEVEL_USE`, `REEXPORT_IN_INIT`,
+  `UNUSED_IMPORT`) citing the constraint IDs it rests on from
+  `docs/pep810-rules.md`. A statement is proposed only when *every* rule proves
+  it safe; a rule that cannot decide rejects
+- Public API: `plan()`, `plan_from_profile()`, `analyze()`, `render_plan_table()`,
+  `render_plan_json()` / `to_plan_json_dict()`, and the plan/verdict dataclasses
+- Versioned JSON plan document (`schema_version` 1, `document` `"plan"`) with
+  per-statement `verdict` / `status` / `reasons` and a `totals` block
+- `document` discriminator on the profile JSON, so the two documents that share
+  a schema version can be told apart. Purely additive: a document carrying
+  `schema_version` 1 and no `document` key is a profile
 - `importbudget profile <entrypoint>` — runs an entrypoint under
   `python -X importtime` and attributes each module's self time to the first
   import statement that imported it. Supports module, `-m` and script

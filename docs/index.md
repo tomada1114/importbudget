@@ -32,6 +32,21 @@ print(render_table(result, top=10))
 print(render_json(result))  # stable, versioned JSON contract
 ```
 
+Then find out which of those imports can safely become PEP 810 `lazy` imports:
+
+```bash
+importbudget plan mypackage --min-ms 5
+```
+
+```python
+from importbudget import plan, render_plan_table
+
+print(render_plan_table(plan("mypackage")))
+```
+
+A statement is proposed only when every safety rule proves it convertible;
+everything else is listed with the reason code that rejected it.
+
 ## Next Steps
 
 - [Getting Started](getting-started.md) — setup and first steps

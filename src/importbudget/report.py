@@ -7,6 +7,7 @@ versioned with :data:`SCHEMA_VERSION` and documented here:
 
     {
       "schema_version": 1,
+      "document":    "profile",
       "tool":        {"name", "version"},
       "entrypoint":  {"target", "kind", "source_root"},
       "environment": {"python_version", "python_executable", "platform"},
@@ -36,6 +37,11 @@ the remainder counted in ``suppressed`` — otherwise any entrypoint using
 ``logging`` (which writes to stderr by default) buries the report in its own
 output.  This channel split is why :data:`SCHEMA_VERSION` still reads 1: no
 version of the document has shipped yet, so there is nothing to migrate.
+
+``document`` names the document *kind*, so that ``plan`` (which emits its own
+document under the same ``schema_version``) can reject the wrong input rather
+than half-parse it.  It is purely additive: a reader that finds no ``document``
+key alongside a ``schema_version`` of 1 is looking at a profile.
 """
 
 from __future__ import annotations
@@ -53,10 +59,23 @@ if TYPE_CHECKING:
     from .profiler import ProfileResult
     from .stderr import ForeignStderr
 
-__all__ = ["SCHEMA_VERSION", "render_json", "render_table", "to_json_dict"]
+__all__ = [
+    "PLAN_DOCUMENT",
+    "PROFILE_DOCUMENT",
+    "SCHEMA_VERSION",
+    "render_json",
+    "render_table",
+    "to_json_dict",
+]
 
-#: Version of the JSON document emitted by :func:`to_json_dict`.
+#: Version of the JSON documents emitted by importbudget.
 SCHEMA_VERSION = 1
+
+#: ``document`` discriminator of the profile document.
+PROFILE_DOCUMENT = "profile"
+
+#: ``document`` discriminator of the plan document.
+PLAN_DOCUMENT = "plan"
 
 _US_PER_MS = 1000.0
 _MAX_SOURCE_WIDTH = 48
@@ -81,6 +100,7 @@ def to_json_dict(result: ProfileResult) -> dict[str, Any]:
     total = attribution.attributed_us
     return {
         "schema_version": SCHEMA_VERSION,
+        "document": PROFILE_DOCUMENT,
         "tool": {"name": "importbudget", "version": __version__},
         "entrypoint": {
             "target": result.entrypoint.target,
