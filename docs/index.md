@@ -1,6 +1,6 @@
 # importbudget
 
-A short description of what this library does.
+Profile, safely convert, and CI-budget Python import time with PEP 810 lazy imports
 
 ## Installation
 
