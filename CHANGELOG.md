@@ -92,8 +92,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   object, deduplicated and capped
 - Initial project structure, bootstrapped from
   [uv-template](https://github.com/tomada1114/uv-template)
+- `OPAQUE_EXPORTS` reason code, reported when a module's `__all__` cannot be
+  read statically. Previously these statements were rejected as
+  `MODULE_LEVEL_USE`, which sent scripts looking for an import-time read that
+  does not exist
+- `ModuleContext`, `Placement` and `build_context` are exported from the package
+  root. Implementing the public `Rule` protocol needs `ModuleContext` for the
+  `check` signature, and they were already in `importbudget.rules.__all__`
 
 ### Changed
+
+- `plan --from-profile` no longer validates `--runs` and `--warmup`. Its help
+  text documents them as unused on that path, but an out-of-range value still
+  failed the command. `--min-ms` is read there and keeps its validation
+- A profile document without the `document` discriminator is refused rather
+  than assumed to be a profile. No released schema version ever omitted the
+  key, so its absence means a foreign file
 
 - Runtime dependency on `libcst>=1.9.0`, the first release shipping
   `cst.LazyImport` / `cst.LazyImportFrom`. `profile` and `plan` still need only
@@ -118,5 +132,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   attributed to their own source lines instead of collapsing into the caller
 - `import importbudget.__main__` no longer exits the interpreter as a side
   effect of the import; `python -m importbudget` is unchanged
+- A `match` capture pattern rebinding an imported name (`case json:`) is no
+  longer judged safe. `MatchAs.name` is a plain string a generic AST walk never
+  reaches; `MatchStar` and `MatchMapping` captures had the same hole
+- A saved profile document carrying negative counts or microsecond totals is
+  refused instead of loading and rendering nonsense in the plan header
 
 [Unreleased]: https://github.com/tomada1114/importbudget/commits/main
