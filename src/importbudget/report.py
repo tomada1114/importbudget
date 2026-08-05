@@ -60,6 +60,7 @@ if TYPE_CHECKING:
     from .stderr import ForeignStderr
 
 __all__ = [
+    "APPLY_DOCUMENT",
     "PLAN_DOCUMENT",
     "PROFILE_DOCUMENT",
     "SCHEMA_VERSION",
@@ -76,6 +77,9 @@ PROFILE_DOCUMENT = "profile"
 
 #: ``document`` discriminator of the plan document.
 PLAN_DOCUMENT = "plan"
+
+#: ``document`` discriminator of the apply document.
+APPLY_DOCUMENT = "apply"
 
 _US_PER_MS = 1000.0
 _MAX_SOURCE_WIDTH = 48

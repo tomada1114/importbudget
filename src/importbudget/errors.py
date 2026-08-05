@@ -21,3 +21,17 @@ class SourceScanError(ImportBudgetError):
 
 class PlanInputError(ImportBudgetError):
     """A saved profile document could not be consumed by ``plan``."""
+
+
+class ApplyInputError(ImportBudgetError):
+    """A saved plan document could not be consumed by ``apply``."""
+
+
+class CodemodError(ImportBudgetError):
+    """The codemod was asked to convert a statement it must never convert.
+
+    Raised for a broken invariant, not for user input: a plan entry marked
+    ``safe`` that resolves to an import outside module top level (placement P1)
+    contradicts the ``NON_TOPLEVEL`` rule, so the safe answer is to stop rather
+    than to emit a ``SyntaxError`` into the user's source.
+    """
