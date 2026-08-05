@@ -77,6 +77,83 @@ instead. `from x import y` has no equivalent in that form and is reported as
 > Lazy imports move a module's import-time side effects, and any `ImportError`,
 > to the first use of the name. Run your test suite after `--write`.
 
+Then prove it actually helped, instead of trusting the prediction:
+
+```bash
+importbudget verify plan.json                        # measure both sides
+importbudget verify plan.json --runs 15 --json       # more pairs, JSON out
+importbudget verify plan.json --target-version 3.13  # pre-3.15 fallback
+```
+
+```python
+from importbudget import render_verify_table, verify
+
+print(render_verify_table(verify("plan.json")))
+```
+
+`verify` copies your source root twice — once unconverted, once converted — and
+re-measures the entrypoint on both in strictly interleaved before/after pairs.
+Your own files are never touched, so it works whether or not you have already
+run `apply --write`.
+
+The reported statistic is the mean of the *per-pair differences*, so a machine
+that drifts during the session moves both sides of a pair rather than one arm
+of the comparison. An improvement is claimed only when `3 sigma` is strictly
+below the absolute delta; anything else is reported as no significant change. A
+delta too small to see in the raw totals is retried against a subtree the
+conversion left structurally identical, which cancels most of the machine-load
+noise the two share. The plan's predicted saving is printed beside the measured
+one, and a divergence past `--divergence-threshold` is called out by name.
+
+## Continuous Integration
+
+`importbudget check` measures an entrypoint's import cost, excluding
+interpreter startup, and fails when it exceeds a budget:
+
+```bash
+importbudget check mypackage --max 150ms   # same budget, either spelling
+importbudget check mypackage --max 0.15s
+```
+
+| Exit code | Meaning |
+|---|---|
+| `0` | at or below the budget — equality passes |
+| `1` | over the budget |
+| `2` | the entrypoint could not be measured, so the budget was never tested |
+
+A crashing entrypoint imports less than a working one, so "could not measure"
+gets its own exit code rather than being reported as a pass or as a regression.
+An unparseable `--max` also exits non-zero, naming the offending text.
+
+Copy this job into `.github/workflows/ci.yml` — it is the one this repository
+runs against itself:
+
+```yaml
+  import-budget:
+    name: Import Budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Install the package
+        run: uv sync --locked
+
+      # Pick your own entrypoint and budget from `importbudget profile`, and
+      # leave headroom: shared runners are slower and noisier than a laptop,
+      # and a gate that flakes gets disabled. More `--runs` buys a steadier
+      # mean, which is what lets the budget sit closer to the real cost.
+      - name: Check the import budget
+        run: uv run importbudget check importbudget --max 1s --runs 5
+```
+
 ## Design Philosophy
 
 Every choice in this template has a reason. If you disagree with a decision,

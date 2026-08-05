@@ -55,10 +55,18 @@ src/importbudget/
 ├── _emit.py        # One eager import -> a lazy one (native + fallback)
 ├── _lazy_gap.py    # Names a module reaches indirectly while importing
 ├── codemod.py      # apply(): rewrite the statements the plan proved safe
+├── verifies.py     # Value objects: VerifyOptions, Comparison, VerifyResult, ...
+├── _verify_input.py# Saved plan JSON -> the entrypoint and totals to re-measure
+├── _subtrees.py    # Normalize a delta against a subtree nothing changed
+├── verify.py       # verify(): interleaved before/after pairs + statistics
+├── budgets.py      # Value objects: Budget, CheckOptions, CheckResult, ...
+├── check.py        # check(): measured import cost vs. a budget
 ├── report.py       # Human table + versioned JSON document (profile)
 ├── plan_report.py  # Human table + versioned JSON document (plan)
 ├── apply_report.py # Diff + human table + versioned JSON document (apply)
-└── cli.py          # argparse command line (profile, plan, apply)
+├── verify_report.py# Human table + versioned JSON document (verify)
+├── check_report.py # Human summary + versioned JSON document (check)
+└── cli.py          # argparse command line (profile, plan, apply, verify, check)
 ```
 
 Every rule cites the constraint IDs it rests on from `docs/pep810-rules.md`,

@@ -93,6 +93,32 @@ jobs:
           uv run --python 3.15 --isolated --with pytest --with libcst
           python -m pytest tests/test_codemod.py --no-header -p no:cacheprovider
 
+  import-budget:
+    # The recipe under "Continuous Integration" in README.md, run against
+    # importbudget itself. `import importbudget` measures around 230 ms here
+    # and is dominated by LibCST; the budget sits well above that because a
+    # shared runner is slower and noisier than a laptop, and a gate that
+    # flakes gets disabled. It still catches a new heavyweight landing in the
+    # public package, which is the regression worth failing a build over.
+    name: Import Budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Install the package
+        run: uv sync --locked
+
+      - name: Check the import budget
+        run: uv run importbudget check importbudget --max 1s --runs 5
+
   spell-check:
     name: Spell Check
     runs-on: ubuntu-latest

@@ -7,12 +7,14 @@ import json
 import pytest
 
 from importbudget._subtrees import normalize
-from importbudget.entrypoints import RunOptions
+from importbudget._verify_input import load_plan_facts
+from importbudget.entrypoints import EntrypointKind, RunOptions
 from importbudget.errors import VerifyInputError
 from importbudget.importtime import ImportNode, ImportTree
 from importbudget.plan_report import render_plan_json
 from importbudget.planner import plan
 from importbudget.plans import PlanOptions
+from importbudget.report import PLAN_DOCUMENT, SCHEMA_VERSION
 from importbudget.verifies import (
     Comparison,
     ComparisonKind,
@@ -394,3 +396,107 @@ class TestVerifyRealConversion:
         # A converted tree that crashed would leave a non-zero status warning
         # behind; the comparison would then be between two broken runs.
         assert not any("non-zero status" in warning for warning in result.warnings)
+
+
+class TestPlanDocument:
+    """A plan document is untrusted input; every field is checked before use."""
+
+    def write(self, tmp_path, **overrides):
+        """Write a minimal plan document, with fields replaced."""
+        document = {
+            "schema_version": SCHEMA_VERSION,
+            "document": PLAN_DOCUMENT,
+            "entrypoint": {
+                "target": "sample",
+                "kind": "module",
+                "source_root": str(tmp_path),
+            },
+            "statements": [],
+            "totals": {},
+        }
+        document.update(overrides)
+        path = tmp_path / "plan.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+        return path
+
+    def test_a_json_array_is_not_a_document(self, tmp_path):
+        path = tmp_path / "plan.json"
+        path.write_text("[]", encoding="utf-8")
+
+        with pytest.raises(VerifyInputError, match=r"does not hold a JSON object"):
+            verify(path)
+
+    def test_a_document_naming_no_entrypoint_is_refused(self, tmp_path):
+        path = self.write(tmp_path, entrypoint={"source_root": str(tmp_path)})
+
+        with pytest.raises(VerifyInputError, match=r"names no entrypoint to verify"):
+            verify(path)
+
+    def test_an_empty_entrypoint_target_is_refused(self, tmp_path):
+        path = self.write(
+            tmp_path, entrypoint={"target": "", "source_root": str(tmp_path)}
+        )
+
+        with pytest.raises(VerifyInputError, match=r"names no entrypoint to verify"):
+            verify(path)
+
+    def test_an_unknown_entrypoint_kind_is_refused(self, tmp_path):
+        path = self.write(
+            tmp_path,
+            entrypoint={
+                "target": "sample",
+                "kind": "telepathy",
+                "source_root": str(tmp_path),
+            },
+        )
+
+        with pytest.raises(VerifyInputError, match=r"unknown entrypoint kind"):
+            verify(path)
+
+    def test_a_document_without_a_source_root_is_refused(self, tmp_path):
+        path = self.write(tmp_path, entrypoint={"target": "sample"})
+
+        with pytest.raises(VerifyInputError, match=r"records no source_root"):
+            verify(path)
+
+    def test_a_source_root_that_is_not_a_directory_is_refused(self, tmp_path):
+        path = self.write(
+            tmp_path,
+            entrypoint={"target": "sample", "source_root": str(tmp_path / "absent")},
+        )
+
+        with pytest.raises(VerifyInputError, match=r"is not a directory"):
+            verify(path)
+
+    def test_a_script_entrypoint_is_reduced_to_its_name_inside_the_copy(self, tmp_path):
+        # The plan records the path relative to wherever it was made; the
+        # scratch trees are copies of source_root, so only the name resolves.
+        facts = load_plan_facts(
+            self.write(
+                tmp_path,
+                entrypoint={
+                    "target": "somewhere/else/run.py",
+                    "kind": "script",
+                    "source_root": str(tmp_path),
+                },
+            )
+        )
+
+        assert facts.entrypoint.target == "run.py"
+        assert facts.entrypoint.kind is EntrypointKind.SCRIPT
+
+    def test_nonsensical_totals_are_read_as_zero(self, tmp_path):
+        facts = load_plan_facts(
+            self.write(
+                tmp_path,
+                totals={
+                    "predicted_saving_us": -1,
+                    "attributed_us": "lots",
+                    "unaddressable_us": True,
+                },
+            )
+        )
+
+        assert facts.predicted_saving_us == 0
+        assert facts.attributed_us == 0
+        assert facts.unaddressable_us == 0
