@@ -1,0 +1,1486 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Profile, safely convert, and CI-budget Python import time with PEP 810 lazy imports">
+      
+      
+      
+        <link rel="canonical" href="https://tomada1114.github.io/importbudget/pep810-rules/">
+      
+      
+        <link rel="prev" href="../getting-started/">
+      
+      
+        <link rel="next" href="../reference/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>PEP 810 Constraints - importbudget</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pep-810-constraint-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="importbudget" class="md-header__button md-logo" aria-label="importbudget" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            importbudget
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              PEP 810 Constraints
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/tomada1114/importbudget" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    tomada1114/importbudget
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="importbudget" class="md-nav__button md-logo" aria-label="importbudget" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    importbudget
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/tomada1114/importbudget" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    tomada1114/importbudget
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PEP 810 Constraints
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PEP 810 Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-status-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Status Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-grammar-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Grammar Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-placement-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Placement Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-semantics-relevant-to-safe-conversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Semantics Relevant to Safe Conversion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Semantics Relevant to Safe Conversion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unverified-not-addressed-by-any-primary-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UNVERIFIED — not addressed by any primary source
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-global-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Global Controls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-divergences-and-traps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Divergences and Traps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-python-315-release-schedule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Python 3.15 Release Schedule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-tooling-support-context-for-the-codemod" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Tooling Support (context for the codemod)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-footer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification Footer
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-status-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Status Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-grammar-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Grammar Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-placement-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Placement Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-semantics-relevant-to-safe-conversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Semantics Relevant to Safe Conversion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Semantics Relevant to Safe Conversion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unverified-not-addressed-by-any-primary-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UNVERIFIED — not addressed by any primary source
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-global-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Global Controls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-divergences-and-traps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Divergences and Traps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-python-315-release-schedule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Python 3.15 Release Schedule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-tooling-support-context-for-the-codemod" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Tooling Support (context for the codemod)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-footer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification Footer
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="pep-810-constraint-reference">PEP 810 Constraint Reference<a class="headerlink" href="#pep-810-constraint-reference" title="Permanent link">&para;</a></h1>
+<p>Single source of truth for <code>importbudget</code>'s codemod. Every row is traceable to a
+primary source (PEP text, <code>docs.python.org/3.15</code>, or CPython source). Rows the
+codemod relies on must never be inferred — anything not backed by a source is
+marked <strong>UNVERIFIED</strong>.</p>
+<hr />
+<h2 id="1-status-summary">1. Status Summary<a class="headerlink" href="#1-status-summary" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PEP</td>
+<td>810 — "Explicit lazy imports"</td>
+<td><a href="https://peps.python.org/pep-0810/">PEP 810</a></td>
+</tr>
+<tr>
+<td>Status</td>
+<td><strong>Final</strong> (not merely "Accepted")</td>
+<td>PEP header, <a href="https://raw.githubusercontent.com/python/peps/main/peps/pep-0810.rst">pep-0810.rst</a></td>
+</tr>
+<tr>
+<td>Type</td>
+<td>Standards Track</td>
+<td>PEP header</td>
+</tr>
+<tr>
+<td>Created</td>
+<td>02-Oct-2025</td>
+<td>PEP header</td>
+</tr>
+<tr>
+<td>Resolution</td>
+<td><a href="https://discuss.python.org/t/pep-810-explicit-lazy-imports/104131/466">03-Nov-2025</a></td>
+<td>PEP header</td>
+</tr>
+<tr>
+<td>Python-Version</td>
+<td>3.15</td>
+<td>PEP header</td>
+</tr>
+<tr>
+<td>Canonical docs</td>
+<td><code>:external+py3.15:ref:lazy-imports</code> — the PEP now defers to the CPython docs</td>
+<td>PEP header <code>.. canonical-doc::</code> directive</td>
+</tr>
+<tr>
+<td>Implementation</td>
+<td>Merged into CPython <code>main</code>; present in <code>v3.15.0rc1</code></td>
+<td><a href="https://github.com/python/cpython/tags">CPython tags</a></td>
+</tr>
+</tbody>
+</table>
+<p>Because the PEP is <strong>Final</strong> and carries a <code>canonical-doc</code> directive, the CPython
+documentation and implementation — <strong>not the PEP prose</strong> — are authoritative
+where they disagree. See §6 for the one known divergence.</p>
+<hr />
+<h2 id="2-grammar-table">2. Grammar Table<a class="headerlink" href="#2-grammar-table" title="Permanent link">&para;</a></h2>
+<p>Reference grammar (<a href="https://peps.python.org/pep-0810/#grammar">PEP 810 §Grammar</a>,
+<a href="https://github.com/python/cpython/blob/main/Grammar/python.gram"><code>Grammar/python.gram</code></a> L228–236):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>import_name:
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    | &#39;lazy&#39;? &#39;import&#39; dotted_as_names
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>import_from:
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    | &#39;lazy&#39;? &#39;from&#39; (&#39;.&#39; | &#39;...&#39;)* dotted_name &#39;import&#39; import_from_targets
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    | &#39;lazy&#39;? &#39;from&#39; (&#39;.&#39; | &#39;...&#39;)+ &#39;import&#39; import_from_targets
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Form</th>
+<th>Allowed</th>
+<th>Notes / Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G1</td>
+<td><code>lazy import x</code></td>
+<td>✅</td>
+<td>PEP §Grammar; PEP §Semantics example</td>
+</tr>
+<tr>
+<td>G2</td>
+<td><code>lazy import x as y</code></td>
+<td>✅</td>
+<td><code>dotted_as_names</code> covers <code>as</code>; LibCST test <code>"lazy import os as operating_system"</code> (PR <a href="https://github.com/Instagram/LibCST/pull/1456">#1456</a>)</td>
+</tr>
+<tr>
+<td>G3</td>
+<td><code>lazy import a, b</code> (multiple targets)</td>
+<td>✅</td>
+<td><code>dotted_as_names</code> is comma-separated; LibCST test <code>"lazy import os, sys"</code></td>
+</tr>
+<tr>
+<td>G4</td>
+<td><code>lazy import a.b.c</code> (dotted, no alias)</td>
+<td>✅</td>
+<td><code>dotted_as_names</code>. <strong>Binds only <code>a</code></strong> — same codegen path as an eager dotted import (<a href="https://github.com/python/cpython/blob/main/Python/codegen.c"><code>Python/codegen.c</code></a> <code>codegen_import</code>, dot-splitting branch). See S7.</td>
+</tr>
+<tr>
+<td>G5</td>
+<td><code>lazy import a.b.c as d</code></td>
+<td>✅</td>
+<td><code>codegen_import_as</code> emits an <code>IMPORT_FROM</code> chain against the lazy proxy</td>
+</tr>
+<tr>
+<td>G6</td>
+<td><code>lazy from x import y</code></td>
+<td>✅</td>
+<td>PEP §Grammar</td>
+</tr>
+<tr>
+<td>G7</td>
+<td><code>lazy from x import y as z</code></td>
+<td>✅</td>
+<td><code>import_from_targets</code> covers <code>as</code></td>
+</tr>
+<tr>
+<td>G8</td>
+<td><code>lazy from x import (y, z)</code> (parenthesized)</td>
+<td>✅</td>
+<td><code>import_from_targets</code> covers the parenthesized form; language reference §7.11 grammar</td>
+</tr>
+<tr>
+<td>G9</td>
+<td><code>lazy from . import x</code> / <code>lazy from .. import x</code></td>
+<td>✅</td>
+<td>Second <code>import_from</code> alternative; LibCST tests <code>"lazy from . import sibling"</code>, <code>"lazy from .. import parent"</code></td>
+</tr>
+<tr>
+<td>G10</td>
+<td><code>lazy from .pkg.mod import x</code></td>
+<td>✅</td>
+<td>First <code>import_from</code> alternative with leading dots</td>
+</tr>
+<tr>
+<td>G11</td>
+<td><code>lazy from x import *</code></td>
+<td>❌ <strong>SyntaxError</strong></td>
+<td><code>"lazy from ... import * is not allowed"</code> (<a href="https://github.com/python/cpython/blob/main/Python/symtable.c"><code>Python/symtable.c</code></a> L2193); secondary check <code>"cannot lazy import *"</code> in <code>codegen.c</code> L3005</td>
+</tr>
+<tr>
+<td>G12</td>
+<td><code>lazy from __future__ import ...</code></td>
+<td>❌ <strong>SyntaxError</strong></td>
+<td><code>"lazy from __future__ import is not allowed"</code> (<a href="https://github.com/python/cpython/blob/main/Parser/action_helpers.c"><code>Parser/action_helpers.c</code></a> L2071)</td>
+</tr>
+<tr>
+<td>G13</td>
+<td><code>from x lazy import y</code> (misplaced keyword)</td>
+<td>❌ <strong>SyntaxError</strong></td>
+<td><code>"use 'lazy from ... ' instead of 'from ... lazy import'"</code> (<code>python.gram</code> L1449, <code>invalid_import_from</code>)</td>
+</tr>
+<tr>
+<td>G14</td>
+<td><code>from . lazy import x</code></td>
+<td>⚠️ Parses as import of relative module <code>lazy</code>, <strong>emits a warning</strong></td>
+<td><code>_warn_relative_import_of_lazy</code> (<code>action_helpers.c</code> L2012–2043): <code>"'from . lazy import' is the same as 'from .lazy import'; did you mean 'lazy from . import'?"</code>. Codemod must never emit this spelling.</td>
+</tr>
+<tr>
+<td>G15</td>
+<td><code>lazy</code> as an ordinary identifier (<code>lazy = 1</code>, <code>def lazy():</code>)</td>
+<td>✅ still valid</td>
+<td>Soft keyword — "only has special meaning when it appears before import statements" (PEP §Grammar)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Codemod rule:</strong> only G1, G2, G6, G7 are safe to <em>emit</em>. G3–G5 and G8–G10 are
+legal but carry extra semantics (see S7, S8); treat as opt-in. G11–G14 are hard
+rejects — the source import must be left untouched.</p>
+<hr />
+<h2 id="3-placement-table">3. Placement Table<a class="headerlink" href="#3-placement-table" title="Permanent link">&para;</a></h2>
+<p>Two independent enforcement layers exist. Both must pass:</p>
+<ul>
+<li><strong>Symbol table</strong> — <a href="https://github.com/python/cpython/blob/main/Python/symtable.c"><code>Python/symtable.c</code></a> <code>check_lazy_import_context</code> (L1847–1876)</li>
+<li><strong>Code generator</strong> — <a href="https://github.com/python/cpython/blob/main/Python/codegen.c"><code>Python/codegen.c</code></a> <code>codegen_validate_lazy_import</code> (L2910–2919)</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Placement</th>
+<th>Allowed</th>
+<th>Error message / Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P1</td>
+<td>Module top level (statement directly in module body)</td>
+<td>✅</td>
+<td>PEP §Syntax restrictions</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>Inside a function / <code>async def</code> / lambda-adjacent scope</td>
+<td>❌</td>
+<td><code>"lazy import not allowed inside functions"</code> / <code>"lazy from ... import not allowed inside functions"</code> (<code>symtable.c</code> L1862)</td>
+</tr>
+<tr>
+<td>P3</td>
+<td>Inside a class body</td>
+<td>❌</td>
+<td><code>"lazy ... not allowed inside classes"</code> (<code>symtable.c</code> L1870)</td>
+</tr>
+<tr>
+<td>P4</td>
+<td>Inside <code>try:</code> / <code>except:</code> / <code>else:</code> / <code>finally:</code> (incl. <code>try*</code>)</td>
+<td>❌</td>
+<td><code>"lazy ... not allowed inside try/except blocks"</code> (<code>symtable.c</code> L1853). <code>ste_in_try_block</code> is set by <code>Try_kind</code> <strong>and</strong> <code>TryStar_kind</code> only (<code>symtable.c</code> L2145–2162), and covers the whole statement including <code>orelse</code>/<code>finalbody</code>.</td>
+</tr>
+<tr>
+<td>P5</td>
+<td>Any non-module compile scope (comprehension, generator expr, <code>exec</code> of a nested scope)</td>
+<td>❌</td>
+<td><code>"lazy imports only allowed in module scope"</code> (<code>codegen.c</code> L2914)</td>
+</tr>
+<tr>
+<td>P6</td>
+<td>Module-level <code>if</code> / <code>elif</code> / <code>else</code> block</td>
+<td>✅ <strong>(implementation-verified, undocumented)</strong></td>
+<td>Not checked anywhere: <code>If_kind</code> only calls <code>ENTER_CONDITIONAL_BLOCK</code>, never <code>ENTER_TRY_BLOCK</code> (<code>symtable.c</code> L2103–2131), and scope stays <code>COMPILE_SCOPE_MODULE</code>. Neither the PEP nor the docs mention <code>if</code>.</td>
+</tr>
+<tr>
+<td>P7</td>
+<td>Module-level <code>with</code> block</td>
+<td>✅ <strong>(implementation-verified, undocumented)</strong></td>
+<td>Same reasoning as P6</td>
+</tr>
+<tr>
+<td>P8</td>
+<td>Module-level <code>for</code> / <code>while</code> loop</td>
+<td>✅ <strong>(implementation-verified, undocumented)</strong></td>
+<td>Same reasoning as P6</td>
+</tr>
+<tr>
+<td>P9</td>
+<td>Module-level <code>match</code> statement</td>
+<td>✅ <strong>(implementation-verified, undocumented)</strong></td>
+<td>Same reasoning as P6</td>
+</tr>
+<tr>
+<td>P10</td>
+<td>Top level of a string passed to <code>exec()</code></td>
+<td>❌ inside a function/class; module-scope case <strong>UNVERIFIED</strong></td>
+<td>CPython tests <code>test_exec_import_func_with_lazy_modules</code> / <code>test_exec_import_class_with_lazy_modules</code> confirm the function- and class-scoped <code>exec</code> cases raise <code>SyntaxError</code>. No source found for the module-scope <code>exec</code> case — do not rely on it.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Codemod rule (conservative):</strong> convert <strong>only P1</strong>. P6–P9 are legal but rest
+on reading CPython's C source, not on any documented guarantee — the docs'
+phrasing "only permitted at module scope" could be tightened later. Converting
+inside <code>if TYPE_CHECKING:</code> in particular changes runtime behavior and must stay
+out of scope. Never convert P2–P5; those are the exact shapes a naive
+"hoist the import" codemod would break on.</p>
+</blockquote>
+<p><strong>Explicit documented restriction wording</strong>, for citation
+(<a href="https://docs.python.org/3.15/whatsnew/3.15.html">Doc/whatsnew/3.15.rst</a>,
+<a href="https://docs.python.org/3.15/reference/simple_stmts.html">Doc reference §7.11</a>):</p>
+<blockquote>
+<p>"Lazy imports are only permitted at module scope; using <code>lazy</code> inside a
+function, class body, or <code>try</code>/<code>except</code>/<code>finally</code> block raises a
+<code>SyntaxError</code>. Neither star imports nor future imports can be lazy."</p>
+</blockquote>
+<hr />
+<h2 id="4-semantics-relevant-to-safe-conversion">4. Semantics Relevant to Safe Conversion<a class="headerlink" href="#4-semantics-relevant-to-safe-conversion" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Rule</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1</td>
+<td>A <code>lazy</code> import binds a <strong><code>types.LazyImportType</code> proxy</strong>, not the module. The real import happens on first <em>use</em> of the name.</td>
+<td>PEP §Semantics; §Lazy objects</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>Proxy type: <code>types.LazyImportType</code>, whose <code>__name__</code> is <code>'lazy_import'</code>. It is <strong>not directly constructible</strong> (<code>TypeError</code>). It exposes a <code>.resolve()</code> method to force reification.</td>
+<td>PEP §Lazy objects; CPython <code>Lib/test/test_lazy_import/__init__.py</code> class <code>LazyImportTypeTests</code></td>
+</tr>
+<tr>
+<td>S3</td>
+<td><code>lazy from mod import a, b</code> binds <strong>each name</strong> to its own proxy. First access to <em>any</em> one loads the <strong>entire module</strong> and reifies <strong>only that name</strong>; the others stay lazy.</td>
+<td>PEP §Semantics</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>Laziness defers <strong>when</strong> a module loads, never <strong>what</strong> loads. <code>lazy from heavy import MyClass</code> still executes all of <code>heavy.py</code> at first use.</td>
+<td>PEP FAQ "Does <code>lazy from module import Class</code> load the entire module or just the class?"</td>
+</tr>
+<tr>
+<td>S5</td>
+<td>A lazily imported module is <strong>absent from <code>sys.modules</code></strong> until reified, and listed in the new <strong><code>sys.lazy_modules</code></strong> set (removed from that set on reification).</td>
+<td>PEP §Lazy import mechanism; §Reification; test <code>test_lazy_modules_attribute_is_dict</code> asserts <code>isinstance(sys.lazy_modules, set)</code></td>
+</tr>
+<tr>
+<td>S6</td>
+<td>Reification calls <code>__import__</code> using the import system state (<code>sys.path</code>, <code>sys.meta_path</code>, <code>sys.path_hooks</code>) <strong>at reification time</strong>, not at statement-execution time.</td>
+<td>PEP §Reification</td>
+</tr>
+<tr>
+<td>S7</td>
+<td><code>lazy import a.b.c</code> binds the name <strong><code>a</code></strong>. Reaching <code>a.b.c</code> walks attributes on the reified package. A missing submodule surfaces as <strong><code>AttributeError</code></strong> at the attribute access — not <code>ImportError</code>.</td>
+<td><code>codegen.c</code> <code>codegen_import</code> dot-splitting; test <code>test_missing_lazy_submodule_raises_attribute_error</code></td>
+</tr>
+<tr>
+<td>S8</td>
+<td>Reifying a package does <strong>not</strong> reify its lazily imported submodules, but they <em>are</em> added to the reified package's globals (unless the package bound something else to that name).</td>
+<td>PEP §Reification; test <code>test_lazy_submodule_stored_in_parent_dict</code></td>
+</tr>
+<tr>
+<td>S9</td>
+<td><code>lazy from mod import name</code> does <strong>not</strong> publish <code>name</code> on <code>mod.__dict__</code>.</td>
+<td>test <code>test_lazy_from_import_does_not_pollute_parent</code></td>
+</tr>
+<tr>
+<td>S10</td>
+<td><strong>Reads that reify:</strong> ordinary name access, module attribute access, <code>getattr()</code>. <strong>Reads that do NOT reify:</strong> <code>globals()</code>, <code>mod.__dict__</code>, <code>dir()</code> (module <code>__dir__</code> is special-cased), <code>frame.f_globals</code>. Those hand back live proxies.</td>
+<td>PEP §Reification; FAQ "How do lazy imports interact with <code>dir()</code>, <code>getattr()</code>…"</td>
+</tr>
+<tr>
+<td>S11</td>
+<td><strong>Error timing shift:</strong> <code>ImportError</code> / <code>AttributeError</code> that an eager import would raise at the import statement now raises at first use. The exception is chained to show both the <code>lazy import</code> line and the access site.</td>
+<td>PEP §Observable behavioral shifts; §Reification</td>
+</tr>
+<tr>
+<td>S12</td>
+<td><strong>Failed reification is not cached.</strong> The proxy is not replaced; every subsequent use retries the import.</td>
+<td>PEP §Reification</td>
+</tr>
+<tr>
+<td>S13</td>
+<td><strong>Side-effect timing shift:</strong> import-time registration / monkey-patching / global-state mutation in the target module is deferred to first use. This is the primary correctness hazard for the codemod.</td>
+<td>PEP §Observable behavioral shifts; FAQ "How do I know if a library is compatible…"</td>
+</tr>
+<tr>
+<td>S14</td>
+<td><strong>Import-order shift:</strong> the order modules load in may differ from source order.</td>
+<td>PEP §Observable behavioral shifts</td>
+</tr>
+<tr>
+<td>S15</td>
+<td>Mixing lazy + eager imports of the same module is fine; the eager import wins and both names resolve to the same module object.</td>
+<td>PEP FAQ "Can I mix lazy and eager imports of the same module?"</td>
+</tr>
+<tr>
+<td>S16</td>
+<td>Thread-safe: the import lock guarantees exactly one thread performs the import, and the global is <strong>atomically rebound</strong>. No free-threading special cases. Subinterpreters each keep their own <code>sys.lazy_modules</code>.</td>
+<td>PEP §Thread-safety and reification</td>
+</tr>
+<tr>
+<td>S17</td>
+<td>Circular imports are <strong>not</strong> fixed by laziness. It helps only when the circular reference is not touched during module initialization.</td>
+<td>PEP FAQ "Do lazy imports work with circular imports?"</td>
+</tr>
+<tr>
+<td>S18</td>
+<td>Annotations (PEP 649/749): <code>lazy from m import T</code> used only in an annotation stays unloaded until <code>__annotations__</code> / <code>annotationlib.get_annotations()</code> / <code>getattr</code> touches it. Lazy imports are a documented replacement for <code>if TYPE_CHECKING:</code> guards.</td>
+<td>PEP FAQ "…PEP 649 and PEP 749"; FAQ "What about type annotations and <code>TYPE_CHECKING</code> imports?"</td>
+</tr>
+<tr>
+<td>S19</td>
+<td><code>.pth</code> files processed by <code>site</code> are <strong>never</strong> lazy.</td>
+<td>PEP §Note on .pth files</td>
+</tr>
+<tr>
+<td>S20</td>
+<td>Import hooks and custom loaders run normally, under the standard protocol, at reification time.</td>
+<td>PEP §Backwards Compatibility; FAQ "…import hooks and custom loaders"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="unverified-not-addressed-by-any-primary-source">UNVERIFIED — not addressed by any primary source<a class="headerlink" href="#unverified-not-addressed-by-any-primary-source" title="Permanent link">&para;</a></h3>
+<p>These must <strong>not</strong> drive codemod logic. Determine empirically on 3.15.0rc1 if
+needed, and record results here with a test reference.</p>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>__all__</code> interaction (does a lazy name in <code>__all__</code> reify on <code>from mod import *</code>?)</td>
+<td><strong>UNVERIFIED</strong> — silent in PEP, docs, and <code>Doc/reference</code></td>
+</tr>
+<tr>
+<td><code>importlib.reload()</code> on a module holding lazy bindings</td>
+<td><strong>UNVERIFIED</strong> — silent in PEP and docs</td>
+</tr>
+<tr>
+<td>Pickling / <code>copy</code> / <code>deepcopy</code> of a <code>LazyImportType</code> proxy</td>
+<td><strong>UNVERIFIED</strong> — silent in PEP and docs</td>
+</tr>
+<tr>
+<td><code>del &lt;lazy_name&gt;</code> at module level</td>
+<td><strong>UNVERIFIED</strong> — silent in PEP and docs</td>
+</tr>
+<tr>
+<td>Whether <code>isinstance()</code> / <code>type()</code> on a proxy reifies (<code>hasattr</code>/<code>getattr</code> clearly do, per S10)</td>
+<td><strong>UNVERIFIED</strong> — PEP states only the general attribute-access rule</td>
+</tr>
+<tr>
+<td>Whether module-level <code>__getattr__</code> shadows an unreified lazy global</td>
+<td><strong>UNVERIFIED</strong> — CPython has tests named <code>test_from_import_with_module_getattr*</code>, but no normative prose</td>
+</tr>
+<tr>
+<td>Whether <code>-X importtime</code> output omits lazily deferred modules until reification</td>
+<td><strong>UNVERIFIED</strong> — no source found; likely (S5) but must be measured, since it directly affects <code>importbudget</code>'s profiler</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-global-controls">5. Global Controls<a class="headerlink" href="#5-global-controls" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Exact name</th>
+<th>Accepted values</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CLI flag</td>
+<td><code>-X lazy_imports=&lt;mode&gt;</code></td>
+<td><strong><code>all</code>, <code>normal</code> only</strong></td>
+<td><a href="https://docs.python.org/3.15/using/cmdline.html#cmdoption-X"><code>Doc/using/cmdline.rst</code></a> L708–711; <a href="https://github.com/python/cpython/blob/main/Python/initconfig.c"><code>Python/initconfig.c</code></a> L482, L2448–2460</td>
+</tr>
+<tr>
+<td>Environment variable</td>
+<td><code>PYTHON_LAZY_IMPORTS=&lt;mode&gt;</code></td>
+<td><strong><code>all</code>, <code>normal</code> only</strong></td>
+<td><code>Doc/using/cmdline.rst</code> L1419; <code>initconfig.c</code> L2433–2445</td>
+</tr>
+<tr>
+<td>Runtime setter</td>
+<td><code>sys.set_lazy_imports(mode, /)</code></td>
+<td><strong><code>"all"</code>, <code>"normal"</code> only</strong> — anything else raises <code>ValueError("mode must be 'normal' or 'all'")</code>; non-str raises <code>TypeError</code></td>
+<td><a href="https://github.com/python/cpython/blob/main/Python/sysmodule.c"><code>Python/sysmodule.c</code></a> L2811–2853</td>
+</tr>
+<tr>
+<td>Runtime getter</td>
+<td><code>sys.get_lazy_imports()</code> → <code>"normal"</code> | <code>"all"</code></td>
+<td>—</td>
+<td><code>sysmodule.c</code> L2856–2878</td>
+</tr>
+<tr>
+<td>Filter setter</td>
+<td><code>sys.set_lazy_imports_filter(func)</code>; <code>func=None</code> removes it</td>
+<td><code>func(importer: str, name: str, fromlist: tuple[str, ...] \| None) -&gt; bool</code>; <code>True</code> keeps the import lazy</td>
+<td>PEP §Lazy imports filter; <code>sysmodule.c</code> L2764–2789</td>
+</tr>
+<tr>
+<td>Filter getter</td>
+<td><code>sys.get_lazy_imports_filter()</code> → callable | <code>None</code></td>
+<td>—</td>
+<td>PEP §Lazy imports filter</td>
+</tr>
+<tr>
+<td>Introspection set</td>
+<td><code>sys.lazy_modules</code> — a <code>set</code> of fully qualified names currently lazy</td>
+<td>—</td>
+<td>PEP §Lazy import mechanism</td>
+</tr>
+<tr>
+<td>Proxy type</td>
+<td><code>types.LazyImportType</code> (<code>__name__ == 'lazy_import'</code>)</td>
+<td>—</td>
+<td>PEP §Lazy objects; <code>Doc/whatsnew/3.15.rst</code></td>
+</tr>
+<tr>
+<td>Import hook</td>
+<td><code>__lazy_import__</code> — called in place of <code>__import__</code> for lazy imports, same signature</td>
+<td>—</td>
+<td>PEP §Lazy import mechanism</td>
+</tr>
+<tr>
+<td>Per-module opt-in</td>
+<td><strong><code>__lazy_modules__</code></strong> — a module-global container of fully qualified module-name strings</td>
+<td>Membership tested via <code>__contains__</code> on each <code>import</code> statement; typically a <code>set</code> or <code>list</code>. Ignored (harmless) on Python &lt; 3.15.</td>
+<td>PEP §Semantics; FAQ "What about forwards compatibility…"; <code>Doc/reference/datamodel</code> <code>module.__lazy_modules__</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mode precedence</strong> (PEP §Global lazy imports control):
+<code>sys.set_lazy_imports()</code> &gt; <code>-X lazy_imports</code> &gt; <code>PYTHON_LAZY_IMPORTS</code> &gt; default <code>normal</code>.</p>
+<p><strong>What <code>all</code> mode actually covers</strong> — verified in <code>codegen.c</code> (L2941–2951,
+L3002–3020): a plain module-level import compiles with lazy-flag <code>0</code>
+("potentially lazy"); imports inside <code>try</code>/<code>except</code> or in a non-module scope, and
+star imports, compile with flag <code>2</code> ("forced eager"). So <code>-X lazy_imports=all</code>
+affects exactly the same statement positions that the <code>lazy</code> keyword is allowed
+in. There is <strong>no per-module opt-out</strong> other than <code>__lazy_modules__</code> (opt-<em>in</em>)
+and the filter callback.</p>
+<p><strong>No per-module opt-out exists.</strong> To force eagerness the only documented routes
+are <code>sys.set_lazy_imports_filter(...)</code> returning <code>False</code>, or simply not marking
+the import.</p>
+<hr />
+<h2 id="6-divergences-and-traps">6. Divergences and Traps<a class="headerlink" href="#6-divergences-and-traps" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Issue</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D1</td>
+<td><strong>The <code>"none"</code> mode described in the PEP does not exist in shipped CPython.</strong></td>
+<td>PEP §Global lazy imports control and §Specification describe a third mode <code>"none"</code> ("no potentially lazy import is ever lazy"), and PEP FAQ recommends <code>-X lazy_imports=none</code> for debugging. The implementation rejects it: <code>sys_set_lazy_imports_impl</code> accepts only <code>"normal"</code>/<code>"all"</code> (<code>sysmodule.c</code> L2838–2848); <code>config_init_lazy_imports</code> accepts only <code>all</code>/<code>normal</code> (<code>initconfig.c</code> L2429–2460, comment: <em>"lazy_imports can be -1 (default) or 1 (on). 0 is rejected later"</em>); <code>Doc/using/cmdline.rst</code> documents <code>{all,normal}</code>. <strong>The PEP prose is stale — the docs and implementation win (PEP is Final with a <code>canonical-doc</code> redirect).</strong> <code>importbudget</code> must not offer a <code>--force-eager</code> escape hatch built on <code>-X lazy_imports=none</code>; use the filter API or run without the flag.</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>Docs do not enumerate <code>if</code>/<code>with</code>/<code>for</code>/<code>while</code> placements</td>
+<td>See P6–P9. Legal today per the C sources, but undocumented. Treat as unsupported for automated conversion.</td>
+</tr>
+<tr>
+<td>D3</td>
+<td><code>from . lazy import x</code> warning trap</td>
+<td>G14. A whitespace-only difference between "relative module named <code>lazy</code>" and a transposed lazy import. Codegen must always emit <code>lazy</code> <strong>before</strong> <code>from</code>.</td>
+</tr>
+<tr>
+<td>D4</td>
+<td><code>lazy import a.b</code> binds <code>a</code>, not <code>a.b</code></td>
+<td>S7. A codemod that assumes the bound name equals the dotted path will mis-track usage.</td>
+</tr>
+<tr>
+<td>D5</td>
+<td>Failed lazy imports retry forever</td>
+<td>S12. A profiling run that survives a broken lazy import may still fail later; budget checks must not treat "no error at import time" as success.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-python-315-release-schedule">7. Python 3.15 Release Schedule<a class="headerlink" href="#7-python-315-release-schedule" title="Permanent link">&para;</a></h2>
+<p>Source: <a href="https://peps.python.org/pep-0790/">PEP 790 — Python 3.15 Release Schedule</a> (Status: <strong>Active</strong>).</p>
+<table>
+<thead>
+<tr>
+<th>Milestone</th>
+<th>Date</th>
+<th>Happened by 2026-08-04?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3.15.0 alpha 1</td>
+<td>2025-10-14</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3.15.0 alpha 2</td>
+<td>2025-11-19</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3.15.0 alpha 3</td>
+<td>2025-12-16</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3.15.0 alpha 4</td>
+<td>2026-01-13</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3.15.0 alpha 5</td>
+<td>2026-01-14</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3.15.0 alpha 6</td>
+<td>2026-02-11</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3.15.0 alpha 7</td>
+<td>2026-03-10</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3.15.0 alpha 8</td>
+<td>2026-04-07</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>3.15.0 beta 1 — feature freeze</strong></td>
+<td><strong>2026-05-07</strong></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3.15.0 beta 2</td>
+<td>2026-06-02</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3.15.0 beta 3</td>
+<td>2026-06-23</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3.15.0 beta 4</td>
+<td>2026-07-18</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>3.15.0 rc1</strong></td>
+<td><strong>2026-08-04</strong></td>
+<td>✅ <strong>today</strong> — tag <code>v3.15.0rc1</code> exists</td>
+</tr>
+<tr>
+<td>3.15.0 rc2</td>
+<td>2026-09-01</td>
+<td>⏳</td>
+</tr>
+<tr>
+<td><strong>3.15.0 final</strong></td>
+<td><strong>2026-10-01</strong></td>
+<td>⏳</td>
+</tr>
+</tbody>
+</table>
+<p>Confirmed via <a href="https://api.github.com/repos/python/cpython/tags">CPython tags</a>:
+<code>v3.15.0a1</code>…<code>v3.15.0a8</code>, <code>v3.15.0b1</code>…<code>v3.15.0b4</code>, <strong><code>v3.15.0rc1</code></strong>.
+<code>docs.python.org/3.15/</code> currently builds from 3.15.0rc1 and documents lazy
+imports. <strong>PEP 810 is testable today</strong> on a real release artifact — the codemod
+does not need to be designed against speculation.</p>
+<hr />
+<h2 id="8-tooling-support-context-for-the-codemod">8. Tooling Support (context for the codemod)<a class="headerlink" href="#8-tooling-support-context-for-the-codemod" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Status</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LibCST</strong></td>
+<td>✅ <strong>Supported since v1.9.0 (2026-07-29)</strong> — ships <code>cst.LazyImport</code> and <code>cst.LazyImportFrom</code> nodes, each with a <code>whitespace_after_lazy: SimpleWhitespace</code> field (validated non-empty) and full round-trip codegen.</td>
+<td><a href="https://github.com/Instagram/LibCST/releases/tag/v1.9.0">LibCST v1.9.0 release</a>; PRs <a href="https://github.com/Instagram/LibCST/pull/1454">#1454</a> (3.15 build), <a href="https://github.com/Instagram/LibCST/pull/1456">#1456</a> (3.15 syntax)</td>
+</tr>
+<tr>
+<td>mypy</td>
+<td>Tracking issue open</td>
+<td><a href="https://github.com/python/mypy/issues/20978">python/mypy#20978</a></td>
+</tr>
+<tr>
+<td>ty (astral)</td>
+<td>Tracking issue open</td>
+<td><a href="https://github.com/astral-sh/ty/issues/2968">astral-sh/ty#2968</a></td>
+</tr>
+<tr>
+<td>isort</td>
+<td>Tracking issue open</td>
+<td><a href="https://github.com/pycqa/isort/issues/2462">PyCQA/isort#2462</a></td>
+</tr>
+</tbody>
+</table>
+<p><code>importbudget</code> should pin <code>libcst &gt;= 1.9.0</code> and emit only <code>LazyImport</code> /
+<code>LazyImportFrom</code> nodes (never raw string splicing), which structurally prevents
+the G14 whitespace trap.</p>
+<hr />
+<h2 id="verification-footer">Verification Footer<a class="headerlink" href="#verification-footer" title="Permanent link">&para;</a></h2>
+<p><strong>Verified against primary sources on 2026-08-04.</strong></p>
+<ul>
+<li>PEP 810 (rendered): https://peps.python.org/pep-0810/</li>
+<li>PEP 810 (source, header + Specification + Semantics + Reification + FAQ read in full): https://raw.githubusercontent.com/python/peps/main/peps/pep-0810.rst</li>
+<li>PEP 790 — Python 3.15 Release Schedule: https://peps.python.org/pep-0790/</li>
+<li>What's New in Python 3.15: https://docs.python.org/3.15/whatsnew/3.15.html</li>
+<li>Language reference, simple statements §7.11 (<code>lazy</code>): https://docs.python.org/3.15/reference/simple_stmts.html</li>
+<li>Command line and environment (<code>-X lazy_imports</code>, <code>PYTHON_LAZY_IMPORTS</code>): https://docs.python.org/3.15/using/cmdline.html</li>
+<li>CPython <code>Grammar/python.gram</code>: https://github.com/python/cpython/blob/main/Grammar/python.gram</li>
+<li>CPython <code>Python/symtable.c</code> (<code>check_lazy_import_context</code>): https://github.com/python/cpython/blob/main/Python/symtable.c</li>
+<li>CPython <code>Python/codegen.c</code> (<code>codegen_validate_lazy_import</code>, <code>codegen_import</code>, <code>codegen_from_import</code>): https://github.com/python/cpython/blob/main/Python/codegen.c</li>
+<li>CPython <code>Parser/action_helpers.c</code> (<code>_PyPegen_checked_from_import</code>, <code>_warn_relative_import_of_lazy</code>): https://github.com/python/cpython/blob/main/Parser/action_helpers.c</li>
+<li>CPython <code>Python/sysmodule.c</code> (<code>sys.set_lazy_imports</code>, filter API): https://github.com/python/cpython/blob/main/Python/sysmodule.c</li>
+<li>CPython <code>Python/initconfig.c</code> (<code>config_init_lazy_imports</code>): https://github.com/python/cpython/blob/main/Python/initconfig.c</li>
+<li>CPython <code>Lib/test/test_lazy_import/__init__.py</code>: https://github.com/python/cpython/blob/main/Lib/test/test_lazy_import/<strong>init</strong>.py</li>
+<li>CPython release tags: https://github.com/python/cpython/tags</li>
+<li>LibCST v1.9.0 release notes: https://github.com/Instagram/LibCST/releases/tag/v1.9.0</li>
+</ul>
+<p>C-source line numbers reflect <code>python/cpython@main</code> as fetched on 2026-08-04 and
+should be re-checked against the 3.15 branch before v0.1.0 ships.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.tabs.link", "navigation.instant", "navigation.tracking", "navigation.top", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
