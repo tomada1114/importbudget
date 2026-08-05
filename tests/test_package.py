@@ -59,8 +59,30 @@ class TestPublicApi:
             "to_plan_json_dict",
         }
 
-    def test_the_public_surface_is_exactly_these_two_groups(self):
-        assert len(__all__) == 40
+    def test_exports_the_conversion_entry_points(self):
+        assert set(__all__) >= {
+            "APPLY_DOCUMENT",
+            "ApplyCode",
+            "ApplyEntry",
+            "ApplyInputError",
+            "ApplyOptions",
+            "ApplyResult",
+            "ApplyStatus",
+            "CodemodError",
+            "FALLBACK_TARGET_VERSIONS",
+            "FileEdit",
+            "FlagCode",
+            "NATIVE_TARGET_VERSION",
+            "TARGET_VERSIONS",
+            "apply",
+            "render_apply_diff",
+            "render_apply_json",
+            "render_apply_table",
+            "to_apply_json_dict",
+        }
+
+    def test_the_public_surface_is_exactly_these_three_groups(self):
+        assert len(__all__) == 58
 
     def test_every_exported_name_exists(self):
         for name in __all__:
@@ -71,6 +93,8 @@ class TestPublicApi:
         assert issubclass(importbudget.EntrypointError, importbudget.ImportBudgetError)
         assert issubclass(importbudget.SourceScanError, importbudget.ImportBudgetError)
         assert issubclass(importbudget.PlanInputError, importbudget.ImportBudgetError)
+        assert issubclass(importbudget.ApplyInputError, importbudget.ImportBudgetError)
+        assert issubclass(importbudget.CodemodError, importbudget.ImportBudgetError)
 
 
 class TestPackageMetadata:

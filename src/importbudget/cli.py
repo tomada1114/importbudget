@@ -11,6 +11,9 @@ import sys
 from typing import TYPE_CHECKING
 
 from ._version import __version__
+from .applies import NATIVE_TARGET_VERSION, TARGET_VERSIONS, ApplyOptions
+from .apply_report import render_apply_json, render_apply_table
+from .codemod import apply
 from .errors import ImportBudgetError
 from .measure import DEFAULT_RUNS, DEFAULT_WARMUP_RUNS, Entrypoint, RunOptions
 from .plan_report import render_plan_json, render_plan_table
@@ -20,7 +23,7 @@ from .profiler import profile
 from .report import render_json, render_table
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
     from .plans import PlanResult
 
@@ -50,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     _add_profile_parser(subparsers)
     _add_plan_parser(subparsers)
+    _add_apply_parser(subparsers)
     return parser
 
 
@@ -128,6 +132,48 @@ def _add_plan_flags(plan_parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_apply_parser(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Register the ``apply`` subcommand and its flags."""
+    apply_parser = subparsers.add_parser(
+        "apply",
+        help="convert the statements a plan proved safe into lazy imports",
+        description=(
+            "Rewrite the `verdict: safe` statements of a saved `plan --json` "
+            "document as PEP 810 lazy imports. Prints a diff and writes "
+            "nothing unless --write is given."
+        ),
+    )
+    apply_parser.add_argument(
+        "plan",
+        metavar="PLAN",
+        help="a document written by `importbudget plan --json`",
+    )
+    apply_parser.add_argument(
+        "--write",
+        action="store_true",
+        help="write the converted files to disk instead of only showing them",
+    )
+    apply_parser.add_argument(
+        "--target-version",
+        default=NATIVE_TARGET_VERSION,
+        choices=TARGET_VERSIONS,
+        metavar="X.Y",
+        help=(
+            f"interpreter the converted source must run on; anything below "
+            f"{NATIVE_TARGET_VERSION} uses the importlib.util.LazyLoader "
+            f"fallback, which cannot convert from-imports (default: "
+            f"{NATIVE_TARGET_VERSION})"
+        ),
+    )
+    apply_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="emit the machine-readable JSON document instead of the report",
+    )
+
+
 def _add_measurement_flags(profile_parser: argparse.ArgumentParser) -> None:
     """Register the flags controlling how much is measured and shown."""
     profile_parser.add_argument(
@@ -171,12 +217,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         argv: Arguments to parse; defaults to ``sys.argv[1:]``.
 
     Returns:
-        Process exit code: 0 on success, 1 when profiling failed.
+        Process exit code: 0 on success, 1 when the subcommand failed.
     """
     parser = build_parser()
     args = parser.parse_args(argv)
+    commands: dict[str, Callable[[argparse.Namespace], int]] = {
+        "profile": _run_profile,
+        "plan": _run_plan,
+        "apply": _run_apply,
+    }
     try:
-        return _run_plan(args) if args.command == "plan" else _run_profile(args)
+        return commands[args.command](args)
     # ValueError covers out-of-range --runs / --warmup / --min-ms values, which
     # argparse cannot reject on its own.
     except (ImportBudgetError, ValueError) as error:
@@ -207,6 +258,15 @@ def _run_plan(args: argparse.Namespace) -> int:
         if args.json
         else render_plan_table(result, top=args.top)
     )
+    print(output)  # noqa: T201 — stdout is this command's output channel
+    return _EXIT_OK
+
+
+def _run_apply(args: argparse.Namespace) -> int:
+    """Execute the ``apply`` subcommand."""
+    options = ApplyOptions(target_version=args.target_version, write=args.write)
+    result = apply(args.plan, options)
+    output = render_apply_json(result) if args.json else render_apply_table(result)
     print(output)  # noqa: T201 — stdout is this command's output channel
     return _EXIT_OK
 

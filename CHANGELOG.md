@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `importbudget apply <plan.json>` — rewrites the statements a plan proved safe
+  into PEP 810 `lazy` imports with LibCST. Defaults to a dry run printing a
+  unified diff; `--write` applies it. Converts only module-top-level statements
+  (placement P1), emits only grammar forms G1/G2/G6/G7, never rewrites a
+  physical line holding more than one statement, and preserves every other line
+  byte-for-byte. Re-running is a no-op: already-converted statements are
+  detected by CST node type, not by scope analysis
+- `--target-version 3.11`..`3.14` on `apply` — a fallback emitter binding
+  whole-module imports through `importlib.util.LazyLoader` for interpreters
+  without the `lazy` keyword. `from x import y` is excluded from it with the
+  reason code `FALLBACK_UNSUPPORTED`
+- Machine-readable reason codes for every statement `apply` declined to rewrite
+  (`UNSUPPORTED_FORM`, `FALLBACK_UNSUPPORTED`, `COMPOUND_LINE`, `ALREADY_LAZY`,
+  `SOURCE_MISMATCH`, `NOT_FOUND`), plus the `MODULE_LEVEL_CALL` advisory for a
+  converted statement whose name an import-time call reaches anyway
+- Versioned JSON apply document (`schema_version` 1, `document` `"apply"`) with
+  the per-statement outcome, the diff and a `totals` block
+- Public API: `apply()`, `render_apply_diff()`, `render_apply_table()`,
+  `render_apply_json()` / `to_apply_json_dict()`, and the apply dataclasses
 - `importbudget plan` — joins a profile with the PEP 810 safety rules and
   proposes the import statements that can safely become `lazy` imports.
   Accepts the same entrypoint forms as `profile`, or `--from-profile
@@ -39,6 +58,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   object, deduplicated and capped
 - Initial project structure, bootstrapped from
   [uv-template](https://github.com/tomada1114/uv-template)
+
+### Changed
+
+- Runtime dependency on `libcst>=1.9.0`, the first release shipping
+  `cst.LazyImport` / `cst.LazyImportFrom`. `profile` and `plan` still need only
+  the standard library; `apply` needs a parser that round-trips source
+  byte-for-byte and can build lazy-import nodes rather than splice text
+- `[tool.uv] exclude-newer` moved to `2026-07-30`, the earliest cutoff that
+  admits `libcst` 1.9.0 (published 2026-07-29)
 
 ### Removed
 

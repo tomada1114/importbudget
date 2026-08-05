@@ -71,6 +71,28 @@ jobs:
           files: ./coverage.xml
           fail_ci_if_error: false
 
+  lazy-syntax:
+    # PEP 810 `lazy` syntax only exists from 3.15, so the codemod's native
+    # emission can only be executed here. 3.15 is still a release candidate:
+    # this job reports, it does not gate, until 3.15.0 final ships.
+    name: Native lazy syntax (Python 3.15 pre-release)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+
+      - name: Run the codemod tests under 3.15
+        run: >
+          uv run --python 3.15 --isolated --with pytest --with libcst
+          python -m pytest tests/test_codemod.py --no-header -p no:cacheprovider
+
   spell-check:
     name: Spell Check
     runs-on: ubuntu-latest

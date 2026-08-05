@@ -44,11 +44,19 @@
 
 ::: importbudget.planner
 
+## Conversion
+
+::: importbudget.applies
+
+::: importbudget.codemod
+
 ## Reporting
 
 ::: importbudget.report
 
 ::: importbudget.plan_report
+
+::: importbudget.apply_report
 
 ## Command line
 

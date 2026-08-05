@@ -50,9 +50,15 @@ src/importbudget/
 ├── plans.py        # Value objects: PlanOptions, PlanEntry, PlanResult, ...
 ├── _plan_input.py  # Saved profile JSON -> planner inputs
 ├── planner.py      # plan(): verdicts joined with attributed cost
+├── applies.py      # Value objects: ApplyOptions, ApplyEntry, ApplyResult, ...
+├── _apply_input.py # Saved plan JSON -> codemod targets
+├── _emit.py        # One eager import -> a lazy one (native + fallback)
+├── _lazy_gap.py    # Names a module reaches indirectly while importing
+├── codemod.py      # apply(): rewrite the statements the plan proved safe
 ├── report.py       # Human table + versioned JSON document (profile)
 ├── plan_report.py  # Human table + versioned JSON document (plan)
-└── cli.py          # argparse command line (profile, plan)
+├── apply_report.py # Diff + human table + versioned JSON document (apply)
+└── cli.py          # argparse command line (profile, plan, apply)
 ```
 
 Every rule cites the constraint IDs it rests on from `docs/pep810-rules.md`,

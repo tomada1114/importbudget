@@ -1,8 +1,9 @@
 """Attribute Python startup import time to the statements that caused it.
 
 The public surface is deliberately small: profile an entrypoint, plan which of
-its imports can safely become PEP 810 ``lazy`` imports, then render either
-result as a table or as the versioned JSON contract that later stages consume.
+its imports can safely become PEP 810 ``lazy`` imports, apply that plan to the
+source, and render every result as a table or as the versioned JSON contract
+that the next stage consumes.
 
 Example:
     >>> from importbudget import RunOptions, profile, render_table
@@ -12,14 +13,39 @@ Example:
     >>> from importbudget import plan, render_plan_table
     >>> proposal = plan("mypackage")  # doctest: +SKIP
     >>> print(render_plan_table(proposal))  # doctest: +SKIP
+
+    >>> from importbudget import ApplyOptions, apply, render_apply_diff
+    >>> conversion = apply("plan.json", ApplyOptions(write=True))  # doctest: +SKIP
+    >>> print(render_apply_diff(conversion))  # doctest: +SKIP
 """
 
 from __future__ import annotations
 
 from ._version import __version__
 from .analyze import Analyzer, Verdict, analyze
+from .applies import (
+    FALLBACK_TARGET_VERSIONS,
+    NATIVE_TARGET_VERSION,
+    TARGET_VERSIONS,
+    ApplyCode,
+    ApplyEntry,
+    ApplyOptions,
+    ApplyResult,
+    ApplyStatus,
+    FileEdit,
+    FlagCode,
+)
+from .apply_report import (
+    render_apply_diff,
+    render_apply_json,
+    render_apply_table,
+    to_apply_json_dict,
+)
 from .attribute import Attribution, AttributionKind, AttributionResult
+from .codemod import apply
 from .errors import (
+    ApplyInputError,
+    CodemodError,
     EntrypointError,
     ImportBudgetError,
     MeasurementError,
@@ -39,6 +65,7 @@ from .plans import (
 )
 from .profiler import ProfileResult, profile
 from .report import (
+    APPLY_DOCUMENT,
     PLAN_DOCUMENT,
     PROFILE_DOCUMENT,
     SCHEMA_VERSION,
@@ -50,17 +77,30 @@ from .rules import RULES, Rule, RuleCode, Violation
 from .stderr import ForeignStderr
 
 __all__ = [
+    "APPLY_DOCUMENT",
+    "FALLBACK_TARGET_VERSIONS",
+    "NATIVE_TARGET_VERSION",
     "PLAN_DOCUMENT",
     "PROFILE_DOCUMENT",
     "RULES",
     "SCHEMA_VERSION",
+    "TARGET_VERSIONS",
     "Analyzer",
+    "ApplyCode",
+    "ApplyEntry",
+    "ApplyInputError",
+    "ApplyOptions",
+    "ApplyResult",
+    "ApplyStatus",
     "Attribution",
     "AttributionKind",
     "AttributionResult",
+    "CodemodError",
     "Entrypoint",
     "EntrypointError",
     "EntrypointKind",
+    "FileEdit",
+    "FlagCode",
     "ForeignStderr",
     "ImportBudgetError",
     "Measurement",
@@ -81,13 +121,18 @@ __all__ = [
     "Violation",
     "__version__",
     "analyze",
+    "apply",
     "plan",
     "plan_from_profile",
     "profile",
+    "render_apply_diff",
+    "render_apply_json",
+    "render_apply_table",
     "render_json",
     "render_plan_json",
     "render_plan_table",
     "render_table",
+    "to_apply_json_dict",
     "to_json_dict",
     "to_plan_json_dict",
 ]
