@@ -47,6 +47,36 @@ print(render_plan_table(plan("mypackage")))
 proves it convertible. Everything else is listed with the reason code that
 rejected it, so "excluded" means *not proven safe*, not *unsafe*.
 
+Then convert exactly what the plan proved safe:
+
+```bash
+importbudget plan mypackage --json > plan.json
+importbudget apply plan.json                        # dry run: prints a diff
+importbudget apply plan.json --write                # rewrite the files
+importbudget apply plan.json --target-version 3.13  # pre-3.15 fallback
+```
+
+```python
+from importbudget import ApplyOptions, apply, render_apply_diff
+
+print(render_apply_diff(apply("plan.json")))
+```
+
+`apply` defaults to a dry run and writes nothing without `--write`. It rewrites
+only module-top-level statements, emits only the `lazy import x [as y]` and
+`lazy from x import y [as z]` forms, and re-running it is a no-op. Statements it
+declines to rewrite keep a machine-readable reason code
+(`UNSUPPORTED_FORM`, `FALLBACK_UNSUPPORTED`, `COMPOUND_LINE`, ...) instead of
+disappearing.
+
+Below Python 3.15 the `lazy` keyword does not exist, so `--target-version
+3.11`..`3.14` binds whole-module imports through `importlib.util.LazyLoader`
+instead. `from x import y` has no equivalent in that form and is reported as
+`FALLBACK_UNSUPPORTED` rather than half-converted.
+
+> Lazy imports move a module's import-time side effects, and any `ImportError`,
+> to the first use of the name. Run your test suite after `--write`.
+
 ## Design Philosophy
 
 Every choice in this template has a reason. If you disagree with a decision,
@@ -65,11 +95,16 @@ from day one mean every line of code is held to the same standard — there is
 never a "legacy" codebase to clean up. LLMs generating code also benefit from
 strict rules: they produce higher-quality output when constraints are clear.
 
-### Why zero runtime dependencies?
+### Why exactly one runtime dependency?
 
-A library template should not impose opinions about logging, HTTP clients, or
-data validation. You add what you need. Starting from zero keeps the dependency
-tree small and avoids conflicts with downstream users.
+`profile` and `plan` need nothing but the standard library. `apply` needs
+[LibCST](https://github.com/Instagram/LibCST) (>= 1.9.0), which is the only
+parser that both round-trips source byte-for-byte — comments, blank lines and
+quote styles survive a rewrite — and ships real `LazyImport` / `LazyImportFrom`
+nodes. Building those nodes rather than splicing the word `lazy` into text is
+what makes it structurally impossible to emit `from . lazy import x`, a
+whitespace slip that CPython accepts as an import of a module named `lazy` and
+merely warns about. That guarantee is worth one dependency; nothing else is.
 
 ### Why Just over Make?
 

@@ -47,6 +47,24 @@ print(render_plan_table(plan("mypackage")))
 A statement is proposed only when every safety rule proves it convertible;
 everything else is listed with the reason code that rejected it.
 
+Then convert exactly what the plan proved safe:
+
+```bash
+importbudget plan mypackage --json > plan.json
+importbudget apply plan.json           # dry run: prints a diff
+importbudget apply plan.json --write   # rewrite the files
+```
+
+```python
+from importbudget import ApplyOptions, apply, render_apply_diff
+
+print(render_apply_diff(apply("plan.json", ApplyOptions(write=True))))
+```
+
+`apply` writes nothing without `--write`, rewrites only module-top-level
+statements into the four grammar forms that are safe to emit, and is a no-op
+when re-run.
+
 ## Next Steps
 
 - [Getting Started](getting-started.md) — setup and first steps
