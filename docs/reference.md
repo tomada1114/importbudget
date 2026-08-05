@@ -4,6 +4,10 @@
 
 ::: importbudget
 
+## Errors
+
+::: importbudget.errors
+
 ## Measurement
 
 ::: importbudget.entrypoints

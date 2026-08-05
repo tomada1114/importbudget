@@ -43,6 +43,33 @@ class TestEntrypointParsing:
         assert entrypoint.command_args == ["run_demo.py"]
         assert entrypoint.top_level_package is None
 
+    def test_module_name_wins_over_a_same_named_extensionless_file(self, tmp_path):
+        # A file named like the module must not silently hijack the target.
+        (tmp_path / "demopkg").write_text("print('not the module')\n", encoding="utf-8")
+
+        entrypoint = Entrypoint.parse("demopkg", cwd=tmp_path)
+
+        assert entrypoint.kind is EntrypointKind.MODULE
+        assert entrypoint.command_args == ["-c", "import demopkg"]
+
+    def test_path_shaped_target_selects_the_extensionless_file(self, tmp_path):
+        (tmp_path / "demopkg").write_text("print('the script')\n", encoding="utf-8")
+
+        entrypoint = Entrypoint.parse("./demopkg", cwd=tmp_path)
+
+        assert entrypoint.kind is EntrypointKind.SCRIPT
+        assert entrypoint.command_args == ["./demopkg"]
+        assert entrypoint.top_level_package is None
+
+    def test_dot_py_suffix_still_selects_the_script(self, tmp_path):
+        (tmp_path / "app").write_text("print('extensionless')\n", encoding="utf-8")
+        (tmp_path / "app.py").write_text("print('script')\n", encoding="utf-8")
+
+        entrypoint = Entrypoint.parse("app.py", cwd=tmp_path)
+
+        assert entrypoint.kind is EntrypointKind.SCRIPT
+        assert entrypoint.command_args == ["app.py"]
+
     def test_missing_script_is_rejected(self, tmp_path):
         with pytest.raises(EntrypointError, match=r"Script entrypoint not found"):
             Entrypoint.parse("missing.py", cwd=tmp_path)

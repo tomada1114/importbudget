@@ -92,6 +92,26 @@ class TestProfile:
         with pytest.raises(MeasurementError, match=r"/nonexistent/python"):
             profile("demopkg", options)
 
+    def test_every_portion_of_a_namespace_package_is_scanned(
+        self, tmp_path, monkeypatch
+    ):
+        # PEP 420 namespace package split over two sys.path entries: the second
+        # portion used to be dropped, leaving its imports unattributable.
+        head, tail = tmp_path / "head", tmp_path / "tail"
+        (head / "nspkg").mkdir(parents=True)
+        (tail / "nspkg").mkdir(parents=True)
+        (head / "nspkg" / "entry.py").write_text(
+            "from nspkg import extra\n", encoding="utf-8"
+        )
+        (tail / "nspkg" / "extra.py").write_text("import decimal\n", encoding="utf-8")
+        monkeypatch.setenv("PYTHONPATH", str(tail))
+
+        result = profile("nspkg.entry", fast(head))
+
+        keys = {row.key for row in result.attribution.rows}
+        assert "nspkg/entry.py:1" in keys
+        assert "nspkg/extra.py:1" in keys
+
     def test_single_file_module_is_supported(self, tmp_path):
         (tmp_path / "lonely.py").write_text("import decimal\n", encoding="utf-8")
 
