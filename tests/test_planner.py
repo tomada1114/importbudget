@@ -330,7 +330,9 @@ class TestProfileDocumentValidation:
 
     def test_an_unsupported_schema_version_is_refused(self, tmp_path):
         path = tmp_path / "profile.json"
-        path.write_text('{"schema_version": 99}', encoding="utf-8")
+        path.write_text(
+            '{"document": "profile", "schema_version": 99}', encoding="utf-8"
+        )
 
         with pytest.raises(PlanInputError, match="schema_version 99"):
             plan_from_profile(path)
@@ -391,15 +393,76 @@ class TestProfileDocumentValidation:
         with pytest.raises(PlanInputError, match="must be a string"):
             plan_from_profile(path)
 
-    def test_a_document_predating_the_discriminator_still_loads(
+    def test_a_document_without_the_discriminator_is_refused(
         self, profile_result, tmp_path
     ):
+        # No released schema version ever omitted `document`, so its absence
+        # means a foreign file, not an older profile. Defaulting to "profile"
+        # would plan against anything carrying a `statements` array.
         document = to_json_dict(profile_result)
         del document["document"]
         path = tmp_path / "profile.json"
         path.write_text(json.dumps(document), encoding="utf-8")
 
-        assert plan_from_profile(path).entries
+        with pytest.raises(PlanInputError, match="is a None document, not a profile"):
+            plan_from_profile(path)
+
+    @pytest.mark.parametrize(
+        ("block", "field"),
+        [
+            pytest.param("measurement", "runs", id="runs"),
+            pytest.param("measurement", "warmup_runs", id="warmup_runs"),
+            pytest.param("measurement", "measured_us", id="measured_us"),
+            pytest.param("measurement", "filtered_baseline_us", id="filtered_us"),
+            pytest.param("measurement", "attributed_us", id="attributed_us"),
+        ],
+    )
+    def test_a_negative_measurement_number_is_refused(
+        self, profile_result, tmp_path, block, field
+    ):
+        document = to_json_dict(profile_result)
+        document[block][field] = -5
+        path = tmp_path / "profile.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+
+        with pytest.raises(PlanInputError, match=f"{field!r} must be >="):
+            plan_from_profile(path)
+
+    @pytest.mark.parametrize(
+        "field",
+        [pytest.param("self_us"), pytest.param("cumulative_us")],
+    )
+    def test_a_negative_statement_number_is_refused(
+        self, profile_result, tmp_path, field
+    ):
+        document = to_json_dict(profile_result)
+        document["statements"][0][field] = -50
+        path = tmp_path / "profile.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+
+        with pytest.raises(PlanInputError, match=f"{field!r} must be >= 0"):
+            plan_from_profile(path)
+
+    def test_zero_runs_is_refused_because_nothing_was_measured(
+        self, profile_result, tmp_path
+    ):
+        # `runs` mirrors RunOptions, which the live path validates as >= 1.
+        document = to_json_dict(profile_result)
+        document["measurement"]["runs"] = 0
+        path = tmp_path / "profile.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+
+        with pytest.raises(PlanInputError, match="'runs' must be >= 1, got 0"):
+            plan_from_profile(path)
+
+    def test_zero_is_accepted_where_zero_is_meaningful(self, profile_result, tmp_path):
+        document = to_json_dict(profile_result)
+        document["measurement"]["warmup_runs"] = 0
+        document["statements"][0]["self_us"] = 0
+        path = tmp_path / "profile.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+
+        assert plan_from_profile(path).profile.warmup_runs == 0
 
 
 class TestProfileSummary:

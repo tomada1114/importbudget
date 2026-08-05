@@ -38,8 +38,9 @@ def load_profile_document(
         rows' paths are relative to.
 
     Raises:
-        PlanInputError: The file is unreadable, is not JSON, or is not a
-            profile document of a supported schema version.
+        PlanInputError: The file is unreadable, is not JSON, is not a profile
+            document of a supported schema version, or carries a field that is
+            missing, of the wrong type, or out of range.
     """
     document = _read(path)
     _check_kind(document, path)
@@ -68,10 +69,14 @@ def _read(path: Path) -> dict[str, Any]:
 
 
 def _check_kind(document: dict[str, Any], path: Path) -> None:
-    """Reject documents of the wrong kind or an unsupported schema version."""
-    # `document` is additive: profiles written before it existed omit the key,
-    # and every document carrying `statements` and this schema version is one.
-    kind = document.get("document", PROFILE_DOCUMENT)
+    """Reject documents of the wrong kind or an unsupported schema version.
+
+    A missing ``document`` key is an error rather than an assumed profile: no
+    released schema version ever omitted it, so its absence means the file is
+    not one of ours — and guessing "profile" would plan against a foreign
+    document that happens to carry a ``statements`` array.
+    """
+    kind = document.get("document")
     if kind != PROFILE_DOCUMENT:
         msg = f"{path} is a {kind!r} document, not a profile"
         raise PlanInputError(msg)
@@ -99,7 +104,7 @@ def _summary(
         origin=origin,
         python_version=_text(environment, "python_version"),
         platform=_text(environment, "platform"),
-        runs=_number(measurement, "runs"),
+        runs=_number(measurement, "runs", minimum=1),
         warmup_runs=_number(measurement, "warmup_runs"),
         measured_us=_number(measurement, "measured_us"),
         filtered_us=_number(measurement, "filtered_baseline_us"),
@@ -163,10 +168,20 @@ def _optional_text(mapping: dict[str, Any], field: str) -> str | None:
     return value if isinstance(value, str) else None
 
 
-def _number(mapping: dict[str, Any], field: str) -> int:
-    """Return a required integer field."""
+def _number(mapping: dict[str, Any], field: str, *, minimum: int = 0) -> int:
+    """Return a required integer field, rejecting values out of range.
+
+    Every number a profile document carries is a count or a microsecond total,
+    so the range check mirrors the one the live path gets for free from
+    :class:`~importbudget.entrypoints.RunOptions` and
+    :class:`~importbudget.plans.PlanOptions`: without it ``runs: -5`` loads
+    happily and renders nonsense in the plan header.
+    """
     value = mapping.get(field)
     if not isinstance(value, int) or isinstance(value, bool):
         msg = f"profile document field {field!r} must be an integer, got {value!r}"
+        raise PlanInputError(msg)
+    if value < minimum:
+        msg = f"profile document field {field!r} must be >= {minimum}, got {value}"
         raise PlanInputError(msg)
     return value
