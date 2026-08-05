@@ -107,16 +107,39 @@ class TestTable:
         assert "predicted -320.00 ms (within the 30% threshold)" in out
 
     def test_a_divergent_prediction_names_both_numbers(self, make_verify):
-        result = make_verify(
-            predicted_saving_us=200_000,
-            warnings=("predicted -200.00 ms, measured -340.00 ms (70% divergence)",),
-        )
-
-        out = render_verify_table(result)
+        out = render_verify_table(make_verify(predicted_saving_us=200_000))
 
         assert "diverges by 70%, over the 30% threshold" in out
-        assert "predicted -200.00 ms" in out
-        assert "measured -340.00 ms" in out
+        assert "  - predicted -200.00 ms, measured -340.00 ms " in out
+        assert "(70% divergence, exceeds the 30% threshold)" in out
+
+    def test_too_few_pairs_warns_that_no_claim_is_possible(self, make_verify):
+        out = render_verify_table(
+            make_verify(raw=comparison([480], [140]), predicted_saving_us=0)
+        )
+
+        assert "1 measured pair(s): a standard deviation needs at least 2" in out
+
+    def test_a_crashed_run_warns_that_both_sides_may_be_incomplete(self, make_verify):
+        out = render_verify_table(make_verify(returncodes=(0, 1, 0, 1)))
+
+        assert "the entrypoint exited with a non-zero status [1]" in out
+
+    def test_a_saving_larger_than_the_removable_cost_is_called_drift(self, make_verify):
+        # Only 20 ms of the 60 ms profile is addressable, yet 340 ms was
+        # measured: the two trees differ by more than the conversion explains.
+        out = render_verify_table(
+            make_verify(attributed_us=60_000, unaddressable_us=40_000)
+        )
+
+        assert "is larger than the 20.00 ms conversion could remove at most" in out
+
+    def test_a_saving_within_the_removable_cost_raises_no_floor_warning(
+        self, make_verify
+    ):
+        out = render_verify_table(make_verify(attributed_us=900_000))
+
+        assert "conversion could remove at most" not in out
 
     def test_the_unaddressable_floor_is_stated(self, make_verify):
         out = render_verify_table(make_verify())

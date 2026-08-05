@@ -25,7 +25,7 @@ from __future__ import annotations
 import platform as platform_module
 import shutil
 import sys
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
@@ -41,7 +41,6 @@ from .measure import build_child_env, run_child
 from .verifies import (
     DEFAULT_VERIFY_RUNS,
     DEFAULT_VERIFY_WARMUP,
-    MIN_PAIRS,
     Comparison,
     ComparisonKind,
     Side,
@@ -250,8 +249,8 @@ def _build_result(
     session: _Session,
     options: VerifyOptions,
 ) -> VerifyResult:
-    """Assemble the comparisons and the warnings into one answer."""
-    result = VerifyResult(
+    """Assemble the measured session and the plan's prediction into one answer."""
+    return VerifyResult(
         target=facts.entrypoint.target,
         kind=str(facts.entrypoint.kind),
         plan_path=conversion.plan_path,
@@ -273,48 +272,5 @@ def _build_result(
         warmup_runs=session.warmup_runs,
         python_version=session.python_version,
         platform=platform_module.platform(),
+        returncodes=session.returncodes,
     )
-    # The warnings are read off the finished comparison, so the result has to
-    # exist before they can be written onto it.
-    return replace(result, warnings=_warnings(result, session.returncodes))
-
-
-def _warnings(result: VerifyResult, returncodes: Sequence[int]) -> tuple[str, ...]:
-    """Report everything that should make a reader distrust these numbers."""
-    warnings: list[str] = []
-    if result.raw.pairs < MIN_PAIRS:
-        warnings.append(
-            f"{result.raw.pairs} measured pair(s): a standard deviation needs "
-            f"at least {MIN_PAIRS}, so no claim can be made either way"
-        )
-    if failures := sorted({code for code in returncodes if code != 0}):
-        warnings.append(
-            f"the entrypoint exited with a non-zero status {failures}; the "
-            f"comparison may be between two incomplete runs"
-        )
-    warnings.extend(_prediction_warnings(result))
-    return tuple(warnings)
-
-
-def _prediction_warnings(result: VerifyResult) -> list[str]:
-    """Hold the measurement against what the plan predicted, both ways round."""
-    warnings: list[str] = []
-    divergence = result.divergence
-    if divergence is not None and result.has_divergence_warning:
-        warnings.append(
-            f"predicted {result.predicted_delta_ms:+.2f} ms, measured "
-            f"{result.measured_delta_us / _US_PER_MS:+.2f} ms "
-            f"({divergence:.0%} divergence, exceeds the "
-            f"{result.divergence_threshold:.0%} threshold)"
-        )
-    removable_us = max(result.attributed_us - result.unaddressable_us, 0)
-    saving_us = -result.measured_delta_us
-    if result.decisive.is_improvement and removable_us and saving_us > removable_us:
-        warnings.append(
-            f"the measured saving of {saving_us / _US_PER_MS:.2f} ms is larger "
-            f"than the {removable_us / _US_PER_MS:.2f} ms conversion could "
-            f"remove at most ({result.unaddressable_us / _US_PER_MS:.2f} ms of "
-            f"the profile sits on the entrypoint itself or on dynamic imports); "
-            f"read the excess as drift between the two trees, not as a win"
-        )
-    return warnings

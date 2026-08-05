@@ -475,7 +475,7 @@ class TestVerifyAndCheckParser:
 
         assert exit_info.value.code == 2
 
-    def test_an_unparseable_budget_exits_naming_the_value(self, capsys):
+    def test_an_unparsable_budget_exits_naming_the_value(self, capsys):
         with pytest.raises(SystemExit) as exit_info:
             build_parser().parse_args(["check", "demopkg", "--max", "notaduration"])
 

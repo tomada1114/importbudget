@@ -48,7 +48,7 @@ class TestBudgetParse:
             pytest.param("1.5.2s", id="malformed-number"),
         ],
     )
-    def test_an_unparseable_value_raises_naming_the_value(self, text):
+    def test_an_unparsable_value_raises_naming_the_value(self, text):
         with pytest.raises(ValueError, match=r"cannot read .* as a duration"):
             Budget.parse(text)
 

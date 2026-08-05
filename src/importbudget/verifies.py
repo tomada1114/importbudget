@@ -231,8 +231,13 @@ class VerifyResult:
         warmup_runs: Pairs discarded first.
         python_version: Interpreter the measurement ran on.
         platform: Host platform of the measurement.
-        warnings: Findings about *this* run, divergence included. The standing
-            caveats belong to the report, which is where a reader meets them.
+        returncodes: Exit status of every measured run, both sides. A non-zero
+            entry means the comparison may be between two incomplete runs.
+
+    The prose — what these numbers mean, and what should make a reader
+    distrust them — is derived by :mod:`importbudget.verify_report` rather than
+    stored here, so that it is computed from the finished comparison and cannot
+    drift out of step with it.
     """
 
     target: str
@@ -252,7 +257,7 @@ class VerifyResult:
     warmup_runs: int = 0
     python_version: str = ""
     platform: str = ""
-    warnings: tuple[str, ...] = ()
+    returncodes: tuple[int, ...] = ()
 
     @property
     def decisive(self) -> Comparison:

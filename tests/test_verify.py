@@ -65,6 +65,20 @@ def tree(total_us: int, reference_us: int, *, extra: str = "") -> ImportTree:
     return ImportTree(roots=(reference, rest), nodes=tuple(nodes))
 
 
+def _renamed(built: ImportTree, prefix: str) -> ImportTree:
+    """Return the same tree with every module renamed, sharing nothing."""
+    for node in built.nodes:
+        node.name = f"{prefix}.{node.name}"
+    return built
+
+
+def _duplicated(built: ImportTree) -> ImportTree:
+    """Return the same tree with every node carrying the same module name."""
+    for node in built.nodes:
+        node.name = "same"
+    return built
+
+
 class TestComparison:
     def test_the_delta_is_the_mean_of_the_paired_differences(self):
         comparison = raw([100, 110, 120], [90, 100, 110])
@@ -180,6 +194,20 @@ class TestNormalize:
 
     def test_normalization_needs_at_least_one_run(self):
         assert normalize([], []) is None
+
+    def test_trees_sharing_no_module_at_all_have_no_reference(self):
+        before = [(tree(110_000, 80_000), 110_000)]
+        after = [(_renamed(tree(105_000, 80_000), "other"), 105_000)]
+
+        assert normalize(before, after) is None
+
+    def test_a_name_appearing_twice_is_never_the_reference(self):
+        # Two nodes with one name cannot be told apart across runs, so
+        # normalizing against "it" could pick a different subtree each side.
+        before = [(_duplicated(tree(110_000, 80_000)), 110_000) for _ in range(3)]
+        after = [(_duplicated(tree(105_000, 80_000)), 105_000) for _ in range(3)]
+
+        assert normalize(before, after) is None
 
 
 class TestDecisive:
@@ -393,9 +421,9 @@ class TestVerifyRealConversion:
             ),
         )
 
-        # A converted tree that crashed would leave a non-zero status warning
-        # behind; the comparison would then be between two broken runs.
-        assert not any("non-zero status" in warning for warning in result.warnings)
+        # A converted tree that crashed would exit non-zero; the comparison
+        # would then be between two broken runs.
+        assert set(result.returncodes) == {0}
 
 
 class TestPlanDocument:

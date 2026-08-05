@@ -27,46 +27,46 @@ in the `justfile`. Run a single test with
 
 ```
 src/importbudget/
-├── __init__.py     # Public API — export everything users need here
-├── __main__.py     # `python -m importbudget`
-├── py.typed        # PEP 561 marker for typed package
-├── errors.py       # Exception hierarchy (ImportBudgetError and friends)
-├── entrypoints.py  # Value objects: Entrypoint, RunOptions, Measurement
-├── importtime.py   # `-X importtime` stderr parser + import tree
-├── stderr.py       # Capped capture of the entrypoint's own stderr
-├── averaging.py    # Mean of several runs, totals kept exact
-├── measure.py      # Child processes, baseline, run collection
-├── sources.py      # AST scan: one file -> import statements (+ the tree)
-├── _names.py       # Statement -> candidate module names
-├── index.py        # Per-file scans -> the modules we own
-├── _resolve.py     # Measured node -> the statement that imported it
-├── attribute.py    # Self time -> the statement that caused it
-├── profiler.py     # profile(): measure + attribute in one session
-├── rules/          # Safety rules, one per file, each with a reason code
-│   ├── _rule.py      # Rule protocol, RuleCode, Violation
-│   ├── _context.py   # Per-module AST facts every rule shares
-│   └── <rule>.py     # star_import, future_import, non_toplevel, ...
-├── analyze.py      # Whitelist engine: every rule over every statement
-├── plans.py        # Value objects: PlanOptions, PlanEntry, PlanResult, ...
-├── _plan_input.py  # Saved profile JSON -> planner inputs
-├── planner.py      # plan(): verdicts joined with attributed cost
-├── applies.py      # Value objects: ApplyOptions, ApplyEntry, ApplyResult, ...
-├── _apply_input.py # Saved plan JSON -> codemod targets
-├── _emit.py        # One eager import -> a lazy one (native + fallback)
-├── _lazy_gap.py    # Names a module reaches indirectly while importing
-├── codemod.py      # apply(): rewrite the statements the plan proved safe
-├── verifies.py     # Value objects: VerifyOptions, Comparison, VerifyResult, ...
-├── _verify_input.py# Saved plan JSON -> the entrypoint and totals to re-measure
-├── _subtrees.py    # Normalize a delta against a subtree nothing changed
-├── verify.py       # verify(): interleaved before/after pairs + statistics
-├── budgets.py      # Value objects: Budget, CheckOptions, CheckResult, ...
-├── check.py        # check(): measured import cost vs. a budget
-├── report.py       # Human table + versioned JSON document (profile)
-├── plan_report.py  # Human table + versioned JSON document (plan)
-├── apply_report.py # Diff + human table + versioned JSON document (apply)
-├── verify_report.py# Human table + versioned JSON document (verify)
-├── check_report.py # Human summary + versioned JSON document (check)
-└── cli.py          # argparse command line (profile, plan, apply, verify, check)
+├── __init__.py      # Public API — export everything users need here
+├── __main__.py      # `python -m importbudget`
+├── py.typed         # PEP 561 marker for typed package
+├── errors.py        # Exception hierarchy (ImportBudgetError and friends)
+├── entrypoints.py   # Value objects: Entrypoint, RunOptions, Measurement
+├── importtime.py    # `-X importtime` stderr parser + import tree
+├── stderr.py        # Capped capture of the entrypoint's own stderr
+├── averaging.py     # Mean of several runs, totals kept exact
+├── measure.py       # Child processes, baseline, run collection
+├── sources.py       # AST scan: one file -> import statements (+ the tree)
+├── _names.py        # Statement -> candidate module names
+├── index.py         # Per-file scans -> the modules we own
+├── _resolve.py      # Measured node -> the statement that imported it
+├── attribute.py     # Self time -> the statement that caused it
+├── profiler.py      # profile(): measure + attribute in one session
+├── rules/           # Safety rules, one per file, each with a reason code
+│   ├── _rule.py         # Rule protocol, RuleCode, Violation
+│   ├── _context.py      # Per-module AST facts every rule shares
+│   └── <rule>.py        # star_import, future_import, non_toplevel, ...
+├── analyze.py       # Whitelist engine: every rule over every statement
+├── plans.py         # Value objects: PlanOptions, PlanEntry, PlanResult, ...
+├── _plan_input.py   # Saved profile JSON -> planner inputs
+├── planner.py       # plan(): verdicts joined with attributed cost
+├── applies.py       # Value objects: ApplyOptions, ApplyEntry, ApplyResult, ...
+├── _apply_input.py  # Saved plan JSON -> codemod targets
+├── _emit.py         # One eager import -> a lazy one (native + fallback)
+├── _lazy_gap.py     # Names a module reaches indirectly while importing
+├── codemod.py       # apply(): rewrite the statements the plan proved safe
+├── verifies.py      # Value objects: VerifyOptions, Comparison, VerifyResult, ...
+├── _verify_input.py # Saved plan JSON -> the entrypoint and totals to re-measure
+├── _subtrees.py     # Normalize a delta against a subtree nothing changed
+├── verify.py        # verify(): interleaved before/after pairs + statistics
+├── budgets.py       # Value objects: Budget, CheckOptions, CheckResult, ...
+├── check.py         # check(): measured import cost vs. a budget
+├── report.py        # Human table + versioned JSON document (profile)
+├── plan_report.py   # Human table + versioned JSON document (plan)
+├── apply_report.py  # Diff + human table + versioned JSON document (apply)
+├── verify_report.py # Human table + versioned JSON document (verify)
+├── check_report.py  # Human summary + versioned JSON document (check)
+└── cli.py           # argparse command line (profile, plan, apply, verify, check)
 ```
 
 Every rule cites the constraint IDs it rests on from `docs/pep810-rules.md`,

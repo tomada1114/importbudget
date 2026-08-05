@@ -123,10 +123,11 @@ importbudget check mypackage --max 0.15s
 
 A crashing entrypoint imports less than a working one, so "could not measure"
 gets its own exit code rather than being reported as a pass or as a regression.
-An unparseable `--max` also exits non-zero, naming the offending text.
+An unparsable `--max` also exits non-zero, naming the offending text.
 
 Copy this job into `.github/workflows/ci.yml` — it is the one this repository
-runs against itself:
+runs against itself (with the two actions pinned to commit SHAs there, which is
+worth doing in yours too):
 
 ```yaml
   import-budget:
@@ -134,11 +135,11 @@ runs against itself:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v8
         with:
           enable-cache: true
           python-version: "3.12"
@@ -174,7 +175,9 @@ strict rules: they produce higher-quality output when constraints are clear.
 
 ### Why exactly one runtime dependency?
 
-`profile` and `plan` need nothing but the standard library. `apply` needs
+`profile`, `plan` and `check` need nothing but the standard library — which is
+what lets `check` run as a CI gate against an installed wheel. `apply`, and
+`verify` because it drives `apply` to build the converted tree, need
 [LibCST](https://github.com/Instagram/LibCST) (>= 1.9.0), which is the only
 parser that both round-trips source byte-for-byte — comments, blank lines and
 quote styles survive a rewrite — and ships real `LazyImport` / `LazyImportFrom`

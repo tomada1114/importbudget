@@ -45,7 +45,7 @@ from typing import TYPE_CHECKING, Any
 
 from ._version import __version__
 from .report import SCHEMA_VERSION, VERIFY_DOCUMENT
-from .verifies import SIGNIFICANCE_SIGMA
+from .verifies import MIN_PAIRS, SIGNIFICANCE_SIGMA
 
 if TYPE_CHECKING:
     from .verifies import Comparison, VerifyResult
@@ -119,8 +119,8 @@ def to_verify_json_dict(result: VerifyResult) -> dict[str, Any]:
             "attributed_us": result.attributed_us,
             "unaddressable_us": result.unaddressable_us,
         },
-        "notes": notes_for(result),
-        "warnings": list(result.warnings),
+        "notes": _notes_for(result),
+        "warnings": _warnings_for(result),
     }
 
 
@@ -148,22 +148,60 @@ def render_verify_table(result: VerifyResult) -> str:
     """
     lines = [*_header_lines(result), "", *_table_lines(result), ""]
     lines.append(_verdict_line(result))
-    lines.extend(f"note: {note}" for note in notes_for(result))
-    if result.warnings:
+    lines.extend(f"note: {note}" for note in _notes_for(result))
+    if warnings := _warnings_for(result):
         lines.append("warnings:")
-        lines.extend(f"  - {warning}" for warning in result.warnings)
+        lines.extend(f"  - {warning}" for warning in warnings)
     return "\n".join(lines)
 
 
-def notes_for(result: VerifyResult) -> list[str]:
-    """Return the standing caveats this verification earned.
+def _warnings_for(result: VerifyResult) -> list[str]:
+    """Return everything that should make a reader distrust these numbers.
 
-    Args:
-        result: Verification to describe.
-
-    Returns:
-        The notes, in the order a reader should meet them.
+    Derived rather than stored, so a warning cannot survive a change to the
+    comparison it was written about.
     """
+    warnings: list[str] = []
+    if result.raw.pairs < MIN_PAIRS:
+        warnings.append(
+            f"{result.raw.pairs} measured pair(s): a standard deviation needs "
+            f"at least {MIN_PAIRS}, so no claim can be made either way"
+        )
+    if failures := sorted({code for code in result.returncodes if code != 0}):
+        warnings.append(
+            f"the entrypoint exited with a non-zero status {failures}; the "
+            f"comparison may be between two incomplete runs"
+        )
+    if result.has_divergence_warning and (divergence := result.divergence):
+        warnings.append(
+            f"predicted {result.predicted_delta_ms:+.2f} ms, measured "
+            f"{result.measured_delta_us / _US_PER_MS:+.2f} ms "
+            f"({divergence:.0%} divergence, exceeds the "
+            f"{result.divergence_threshold:.0%} threshold)"
+        )
+    warnings.extend(_floor_warning(result))
+    return warnings
+
+
+def _floor_warning(result: VerifyResult) -> list[str]:
+    """Warn when the measured saving beats what conversion could possibly buy."""
+    removable_us = max(result.attributed_us - result.unaddressable_us, 0)
+    saving_us = -result.measured_delta_us
+    if not (result.decisive.is_improvement and removable_us):
+        return []
+    if saving_us <= removable_us:
+        return []
+    return [
+        f"the measured saving of {saving_us / _US_PER_MS:.2f} ms is larger than "
+        f"the {removable_us / _US_PER_MS:.2f} ms conversion could remove at most "
+        f"({result.unaddressable_us / _US_PER_MS:.2f} ms of the profile sits on "
+        f"the entrypoint itself or on dynamic imports); read the excess as drift "
+        f"between the two trees, not as a win"
+    ]
+
+
+def _notes_for(result: VerifyResult) -> list[str]:
+    """Return the standing caveats this verification earned."""
     notes = [_INTERLEAVE_NOTE, _SIGMA_NOTE, _PREDICTION_NOTE]
     if result.normalized is None:
         notes.append(_NO_REFERENCE_NOTE)
