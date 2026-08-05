@@ -62,7 +62,7 @@ _GAP_NOTE = (
     "MODULE_LEVEL_CALL marks a converted statement whose name is reached by a "
     "function this module calls while importing, so the proxy reifies anyway "
     "and the saving is likely zero. The conversion is still safe; measuring "
-    "this properly is tracked in issue #17"
+    "this properly is tracked in issue #21"
 )
 
 

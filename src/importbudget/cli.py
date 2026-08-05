@@ -398,12 +398,7 @@ def _run_profile(args: argparse.Namespace) -> int:
 
 
 def _run_plan(args: argparse.Namespace) -> int:
-    """Execute the ``plan`` subcommand.
-
-    Raises:
-        ValueError: Neither an entrypoint nor ``--from-profile`` was given, or
-            both were.
-    """
+    """Execute the ``plan`` subcommand."""
     result = _plan_result(args)
     output = (
         render_plan_json(result)
@@ -455,20 +450,28 @@ def _run_check(args: argparse.Namespace) -> int:
 
 
 def _plan_result(args: argparse.Namespace) -> PlanResult:
-    """Build the plan from whichever input form the user chose."""
-    options = PlanOptions(
-        run=RunOptions(runs=args.runs, warmup=args.warmup),
-        min_us=round(args.min_ms * _US_PER_MS),
-    )
+    """Build the plan from whichever input form the user chose.
+
+    Raises:
+        ValueError: Neither an entrypoint nor ``--from-profile`` was given, or
+            both were, or a measurement flag is out of range.
+    """
+    min_us = round(args.min_ms * _US_PER_MS)
     if args.from_profile:
         if args.entrypoint:
             msg = "give either an entrypoint or --from-profile, not both"
             raise ValueError(msg)
-        return plan_from_profile(args.from_profile, options)
+        # `--runs`/`--warmup` are documented as unused here, so they are not
+        # built into a RunOptions whose validation would reject them.
+        return plan_from_profile(args.from_profile, PlanOptions(min_us=min_us))
     if not args.entrypoint:
         msg = "plan needs an entrypoint, or --from-profile PATH"
         raise ValueError(msg)
     entrypoint = Entrypoint.parse(args.entrypoint, run_module=args.module)
+    options = PlanOptions(
+        run=RunOptions(runs=args.runs, warmup=args.warmup),
+        min_us=min_us,
+    )
     return plan(entrypoint, options)
 
 

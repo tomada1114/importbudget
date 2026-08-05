@@ -205,6 +205,48 @@ class TestPlanCommand:
         assert document["profile"]["origin"] == saved.as_posix()
         assert any(s["verdict"] == "safe" for s in document["statements"])
 
+    def test_from_profile_ignores_the_measurement_flags_it_documents_as_unused(
+        self, project_dir, tmp_path, monkeypatch, capsys
+    ):
+        # --runs 0 is rejected on the measuring path, but --from-profile's help
+        # text says the flag is unused there, so it must not build (and
+        # validate) a RunOptions nobody reads.
+        monkeypatch.chdir(project_dir)
+        main(["profile", "demopkg", "--runs", "1", "--warmup", "0", "--json"])
+        saved = tmp_path / "profile.json"
+        saved.write_text(capsys.readouterr().out, encoding="utf-8")
+
+        code = main(
+            ["plan", "--from-profile", str(saved), "--runs", "0", "--warmup", "-1"]
+        )
+
+        assert code == 0
+        assert capsys.readouterr().err == ""
+
+    def test_the_measuring_path_still_rejects_an_out_of_range_runs(
+        self, project_dir, monkeypatch, capsys
+    ):
+        monkeypatch.chdir(project_dir)
+
+        code = main(["plan", "demopkg", "--runs", "0"])
+
+        assert code == 1
+        assert "runs must be >= 1" in capsys.readouterr().err
+
+    def test_from_profile_still_rejects_an_out_of_range_min_ms(
+        self, project_dir, tmp_path, monkeypatch, capsys
+    ):
+        # --min-ms *is* read on this path, so its validation has to survive.
+        monkeypatch.chdir(project_dir)
+        main(["profile", "demopkg", "--runs", "1", "--warmup", "0", "--json"])
+        saved = tmp_path / "profile.json"
+        saved.write_text(capsys.readouterr().out, encoding="utf-8")
+
+        code = main(["plan", "--from-profile", str(saved), "--min-ms", "-1"])
+
+        assert code == 1
+        assert "min_us must be >= 0" in capsys.readouterr().err
+
     def test_min_ms_moves_cheap_statements_out_of_the_proposal(
         self, project_dir, monkeypatch, capsys
     ):

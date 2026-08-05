@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import importlib
 import importlib.metadata as importlib_metadata
 from importlib.metadata import PackageNotFoundError, version
@@ -40,6 +41,8 @@ class TestPublicApi:
             "PROFILE_DOCUMENT",
             "RULES",
             "Analyzer",
+            "ModuleContext",
+            "Placement",
             "PlanEntry",
             "PlanInputError",
             "PlanOptions",
@@ -52,6 +55,7 @@ class TestPublicApi:
             "Verdict",
             "Violation",
             "analyze",
+            "build_context",
             "plan",
             "plan_from_profile",
             "render_plan_json",
@@ -107,7 +111,38 @@ class TestPublicApi:
         }
 
     def test_the_public_surface_is_exactly_these_four_groups(self):
-        assert len(__all__) == 79
+        assert len(__all__) == 82
+
+    def test_the_rule_protocol_can_be_implemented_from_the_top_level_alone(
+        self, tmp_path
+    ):
+        # `Rule.check` takes a ModuleContext and reads Placement off it, so a
+        # third-party rule importing only from `importbudget` needs both.
+        class NoBlockImportsRule:
+            code = importbudget.RuleCode.NON_TOPLEVEL
+
+            def check(self, statement, context):
+                if importbudget.Placement.BLOCK not in context.placement_of(statement):
+                    return None
+                return importbudget.Violation(code=self.code, message="inside a block")
+
+        path = tmp_path / "sample.py"
+        path.write_text("if True:\n    import decimal\n", encoding="utf-8")
+
+        verdicts = importbudget.analyze(path, "sample", rules=(NoBlockImportsRule(),))
+
+        assert [str(code) for code in verdicts[0].codes] == ["NON_TOPLEVEL"]
+
+    def test_build_context_is_reachable_from_the_top_level(self, tmp_path):
+        path = tmp_path / "sample.py"
+        path.write_text("import decimal\n", encoding="utf-8")
+
+        context = importbudget.build_context(
+            path, "sample", ast.parse("import decimal")
+        )
+
+        assert isinstance(context, importbudget.ModuleContext)
+        assert context.module == "sample"
 
     def test_every_exported_name_exists(self):
         for name in __all__:
