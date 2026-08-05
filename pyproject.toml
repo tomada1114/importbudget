@@ -21,6 +21,9 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
+dependencies = [
+    "libcst>=1.9.0",
+]
 
 [project.scripts]
 importbudget = "importbudget.cli:main"
@@ -41,7 +44,7 @@ docs = ["mkdocs-material>=9.7.6", "mkdocstrings[python]>=1.0.4"]
 # --------------------------------------------------------------------------- #
 
 [tool.uv]
-exclude-newer = "2026-06-18T00:00:00Z"
+exclude-newer = "2026-07-30T00:00:00Z"
 
 # --------------------------------------------------------------------------- #
 #  Build
