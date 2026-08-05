@@ -712,7 +712,7 @@ class TestModuleLevelCallFlag:
         table = render_apply_table(apply(plan))
 
         assert "MODULE_LEVEL_CALL" in table
-        assert "issue #17" in table
+        assert "issue #21" in table
 
 
 class TestPlanInput:

@@ -312,7 +312,7 @@ def _convert_line(
 
 
 def _flags(view: _ModuleView, target: PlanTarget) -> tuple[FlagCode, ...]:
-    """Return the advisories a conversion carries (see issue #17)."""
+    """Return the advisories a conversion carries (see issue #21)."""
     if view.reached & set(target.bound_names):
         return (FlagCode.MODULE_LEVEL_CALL,)
     return ()

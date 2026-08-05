@@ -117,7 +117,7 @@ class FlagCode(StrEnum):
     module executes.  When the module instead calls one of its own functions at
     import time, and that function reads the name, the proxy reifies during
     import anyway and the conversion saves nothing.  Analysing this properly is
-    tracked in issue #17; until then the statement is converted and flagged.
+    tracked in issue #21; until then the statement is converted and flagged.
     """
 
 

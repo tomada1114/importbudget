@@ -16,7 +16,7 @@ Making ``import numpy`` lazy here is *safe* — nothing breaks — but it is
 pointless: the proxy reifies before the import statement's module has finished
 executing, so the measured saving is zero.  Closing this gap properly (a real
 call graph, including methods, decorators and comprehension scopes) is tracked
-in issue #17; this module only answers the cheap question well enough to raise
+in issue #21; this module only answers the cheap question well enough to raise
 an advisory in the dry run.
 
 The answer is a reachability set: start from the locally defined functions
