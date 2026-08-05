@@ -231,8 +231,8 @@ class VerifyResult:
         warmup_runs: Pairs discarded first.
         python_version: Interpreter the measurement ran on.
         platform: Host platform of the measurement.
-        notes: Standing caveats about reading these numbers.
-        warnings: Findings about *this* run, divergence included.
+        warnings: Findings about *this* run, divergence included. The standing
+            caveats belong to the report, which is where a reader meets them.
     """
 
     target: str
@@ -252,7 +252,6 @@ class VerifyResult:
     warmup_runs: int = 0
     python_version: str = ""
     platform: str = ""
-    notes: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
 
     @property
