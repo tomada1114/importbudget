@@ -44,4 +44,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The `core.add` placeholder from the template
 
+### Fixed
+
+- Entrypoint classification no longer prefers a same-named extensionless file
+  in the working directory over a valid dotted module name. A `.py` suffix
+  always means a script, a valid dotted name always means a module, and a
+  path-shaped target such as `./tool` is how an extensionless script is asked
+  for
+- Namespace packages split across several `sys.path` entries now have every
+  portion scanned, so imports made from the portions after the first are
+  attributed to their own source lines instead of collapsing into the caller
+- `import importbudget.__main__` no longer exits the interpreter as a side
+  effect of the import; `python -m importbudget` is unchanged
+
 [Unreleased]: https://github.com/tomada1114/importbudget/commits/main

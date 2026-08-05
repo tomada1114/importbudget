@@ -241,6 +241,17 @@ class TestModuleExecution:
 
         assert exit_info.value.code == 0
 
+    def test_importing_the_entry_module_does_not_exit_the_interpreter(self):
+        completed = subprocess.run(
+            [sys.executable, "-c", "import importbudget.__main__; print('ok')"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        assert completed.returncode == 0
+        assert completed.stdout.strip() == "ok"
+
 
 class TestEndToEnd:
     def test_json_output_satisfies_the_ten_percent_criterion(self, project_dir):

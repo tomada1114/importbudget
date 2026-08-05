@@ -69,6 +69,14 @@ class Entrypoint:
     ) -> Entrypoint:
         """Classify a command-line entrypoint.
 
+        Precedence is fixed and does not depend on what happens to sit in
+        ``cwd``: a ``.py`` suffix always means a script, and a syntactically
+        valid dotted name always means a module, even when a same-named
+        extensionless file exists next to it. Only a target that cannot be a
+        module name — anything path-shaped, such as ``./tool`` or ``bin/tool``
+        — is read as an extensionless script; that is also how a caller opts
+        into running one.
+
         Args:
             target: Module name or script path.
             run_module: Force ``-m`` style execution.
@@ -84,7 +92,9 @@ class Entrypoint:
         base = cwd or Path.cwd()
         if run_module:
             kind = EntrypointKind.MODULE_RUN
-        elif target.endswith(".py") or (base / target).is_file():
+        elif target.endswith(".py") or (
+            not _DOTTED_NAME_RE.match(target) and (base / target).is_file()
+        ):
             kind = EntrypointKind.SCRIPT
         else:
             kind = EntrypointKind.MODULE

@@ -24,6 +24,13 @@ importbudget profile -m mypackage.cli     # run it with -m
 importbudget profile scripts/run.py       # run a script
 ```
 
+!!! note "Modules and scripts"
+
+    A `.py` suffix always means a script, and a valid dotted name always means a
+    module — whatever files happen to sit in the working directory. To profile an
+    extensionless script whose name is also a valid module name, give it as a
+    path: `importbudget profile ./mytool`.
+
 Useful flags:
 
 | Flag | Meaning |

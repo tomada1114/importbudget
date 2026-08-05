@@ -32,11 +32,17 @@ if TYPE_CHECKING:
 
 __all__ = ["ProfileResult", "profile"]
 
+# Prints one absolute location per line: every portion of a namespace package,
+# in import order, or the single origin of an ordinary module. Paths are made
+# absolute in the child, whose working directory is the one being profiled.
 _LOCATE_CODE = (
-    "import importlib.util, sys\n"
+    "import importlib.util, os, sys\n"
     "spec = importlib.util.find_spec(sys.argv[1])\n"
-    "locations = getattr(spec, 'submodule_search_locations', None) if spec else None\n"
-    "print(next(iter(locations)) if locations else (spec.origin if spec else ''))\n"
+    "found = getattr(spec, 'submodule_search_locations', None) if spec else None\n"
+    "paths = list(found or ())\n"
+    "if not paths and spec and spec.origin:\n"
+    "    paths = [spec.origin]\n"
+    "print('\\n'.join(os.path.abspath(path) for path in paths))\n"
 )
 
 
@@ -131,19 +137,24 @@ def _build_index(
     if package is None:  # pragma: no cover - only scripts lack a package
         msg = f"Entrypoint {entrypoint.target!r} has no owning package."
         raise EntrypointError(msg)
-    location = _locate_module(package, python=options.python, cwd=cwd)
-    if location is None:
+    locations = _locate_module(package, python=options.python, cwd=cwd)
+    if not locations:
         msg = (
             f"Cannot locate the source of {package!r}. Install it, or run "
             f"importbudget from the directory that contains it."
         )
         raise EntrypointError(msg)
 
-    index = (
-        scan_package(location.parent, package)
-        if location.is_dir()
-        else _index_for_module_file(location, package)
-    )
+    # A namespace package has one location per portion; scanning only the first
+    # would leave every module under the others unowned, and so unattributed.
+    index = SourceIndex()
+    for location in locations:
+        portion = (
+            scan_package(location.parent, package)
+            if location.is_dir()
+            else _index_for_module_file(location, package)
+        )
+        index = index.merged_with(portion)
     return _with_root_owner(index, entrypoint)
 
 
@@ -198,7 +209,7 @@ def _locate_module(
     *,
     python: str | None,
     cwd: Path,
-) -> Path | None:
+) -> tuple[Path, ...]:
     """Ask the profiled interpreter where a module's source lives.
 
     The lookup runs in the child interpreter (and the same environment as the
@@ -207,6 +218,11 @@ def _locate_module(
     runner so that an unusable interpreter surfaces as a ``MeasurementError``
     here too, rather than as a bare ``OSError`` — this runs *before* the first
     measured process, so it is where a bad ``python`` is noticed.
+
+    Returns:
+        Every existing location, in import order: one entry per portion of a
+        namespace package, a single entry for an ordinary module or package,
+        and nothing at all when the module cannot be found.
 
     Raises:
         MeasurementError: The interpreter could not be started at all.
@@ -218,8 +234,9 @@ def _locate_module(
         cwd=cwd,
         env=build_child_env(cwd),
     )
-    origin = completed.stdout.strip()
-    if completed.returncode != 0 or not origin:
-        return None
-    path = Path(origin)
-    return path if path.exists() else None
+    if completed.returncode != 0 or not completed.stdout.strip():
+        return ()
+    # The same directory can be reached by two sys.path entries (``''`` and an
+    # absolute copy of the working directory), so duplicates are dropped.
+    origins = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    return tuple(path for path in map(Path, dict.fromkeys(origins)) if path.exists())
