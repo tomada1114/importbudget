@@ -10,27 +10,31 @@ from importbudget.rules import RULES
 
 from .conftest import ADVERSARIAL_DIR, FIXTURES_DIR, PROJECT_DIR, safe_sources
 
-#: Every executable statement of the adversarial fixture, by line.
+#: Every executable statement of the syntactic adversarial fixture, by line.
 ADVERSARIAL_LINES = (
-    13,
-    15,
-    16,
-    17,
-    18,
     19,
-    20,
-    27,
-    29,
-    31,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
     33,
-    36,
+    35,
+    37,
     39,
     42,
     45,
-    49,
+    48,
+    51,
     55,
-    60,
+    61,
+    66,
 )
+
+#: Line of the same-line pair in the semantic fixture, and of the known gap.
+SAME_LINE = 25
+KNOWN_GAP_LINE = 27
 
 
 @pytest.fixture
@@ -40,6 +44,16 @@ def adversarial_verdicts():
         "adversarial",
         root=FIXTURES_DIR,
     )
+
+
+@pytest.fixture
+def semantic_path():
+    return ADVERSARIAL_DIR / "semantic.py"
+
+
+@pytest.fixture
+def semantic_verdicts(semantic_path):
+    return analyze(semantic_path, "adversarial.semantic", root=FIXTURES_DIR)
 
 
 class TestZeroFalseSafe:
@@ -63,8 +77,69 @@ class TestZeroFalseSafe:
     ):
         judged = {v.statement.lineno for v in adversarial_verdicts}
 
-        # Line 24 is `from collections.abc import Sequence` under TYPE_CHECKING.
-        assert 24 not in judged
+        # Line 30 is `from collections.abc import Sequence` under TYPE_CHECKING.
+        assert 30 not in judged
+
+
+class TestSemanticFalseSafe:
+    """The cases the syntactic fixture above cannot express.
+
+    Every line in ``adversarial/__init__.py`` is refusable from its own shape.
+    These are not: they are ordinary module-level imports read only inside
+    functions, and what makes them unsafe lives elsewhere in the module.
+    """
+
+    def test_an_opaque_all_rejects_every_statement_in_the_module(self):
+        verdicts = analyze(
+            ADVERSARIAL_DIR / "opaque_exports.py",
+            "adversarial.opaque_exports",
+            root=FIXTURES_DIR,
+        )
+
+        assert safe_sources(verdicts) == set()
+
+    def test_an_opaque_all_is_the_only_reason_those_statements_are_refused(self):
+        # Nothing in that fixture is read at import time, re-exported or
+        # unused, so a second code firing would mean a rule fires too widely.
+        verdicts = analyze(
+            ADVERSARIAL_DIR / "opaque_exports.py",
+            "adversarial.opaque_exports",
+            root=FIXTURES_DIR,
+        )
+
+        assert {str(code) for v in verdicts for code in v.codes} == {"OPAQUE_EXPORTS"}
+
+    def test_one_statement_of_a_shared_line_is_safe_on_its_own(self, semantic_verdicts):
+        # This is why the merge below exists: judged alone, `import graphlib`
+        # is a textbook lazy candidate.
+        alone = [
+            v
+            for v in semantic_verdicts
+            if v.statement.lineno == SAME_LINE and v.bound_names == ("graphlib",)
+        ]
+
+        assert [v.is_safe for v in alone] == [True]
+
+    def test_the_costed_row_for_that_line_is_never_safe(self, semantic_path):
+        # Attribution is line-granular, so the row covers both statements and
+        # the unsafe neighbour has to sink it.
+        verdict = Analyzer(root=FIXTURES_DIR).find(
+            semantic_path, "adversarial.semantic", SAME_LINE
+        )
+
+        assert verdict is not None
+        assert not verdict.is_safe
+        assert set(verdict.bound_names) == {"graphlib", "gzip"}
+
+    def test_a_module_level_call_chain_is_still_judged_safe(self, semantic_verdicts):
+        # Known gap, tracked in issue #21: nothing reads `wave` while the
+        # module executes, but `_probe()` reaches it through `_read`, so the
+        # conversion is harmless and saves nothing. `apply` flags it as
+        # MODULE_LEVEL_CALL instead; when the call-graph pass lands, this
+        # statement becomes an exclusion and this test flips.
+        gap = [v for v in semantic_verdicts if v.statement.lineno == KNOWN_GAP_LINE]
+
+        assert [v.is_safe for v in gap] == [True]
 
 
 class TestAnalyze:

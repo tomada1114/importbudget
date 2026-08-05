@@ -2,8 +2,14 @@
 
 This module is never imported. It is parsed by the rule set, which must reject
 every single statement below; one statement landing in the safe set is the
-failure mode the whitelist exists to prevent, so the test asserting that is the
-acceptance criterion for the rules package.
+failure mode the whitelist exists to prevent.
+
+Its coverage is *syntactic*: every case here is refusable from the shape of the
+statement and the block enclosing it, so passing this file proves the placement
+and shape rules hold and nothing more. The semantic cases — lines that read as
+textbook lazy candidates and are unsafe only because of what surrounds them —
+live in the sibling ``semantic.py`` and ``opaque_exports.py``. The three files
+together are the acceptance criterion for the rules package.
 
 It is a package ``__init__.py`` on purpose, so the re-export rule applies too.
 Lint and type checks skip this tree (see ``pyproject.toml``): the point of the
