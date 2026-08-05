@@ -276,6 +276,99 @@ class TestModuleLevelUse:
 
         assert "MODULE_LEVEL_USE" in by_source["import decimal"]
 
+    def test_a_global_rebinding_counts_as_an_import_time_use(self, judge):
+        by_source = codes_by_source(
+            judge(
+                """
+                import decimal
+
+
+                def helper():
+                    global decimal
+                    decimal = None
+                """
+            )
+        )
+
+        assert "MODULE_LEVEL_USE" in by_source["import decimal"]
+
+    @pytest.mark.parametrize(
+        "pattern",
+        [
+            pytest.param("case decimal:", id="capture"),
+            pytest.param("case [*decimal]:", id="star-capture"),
+            pytest.param("case {**decimal}:", id="mapping-rest"),
+            pytest.param("case [1] as decimal:", id="as-capture"),
+        ],
+    )
+    def test_every_match_capture_form_rebinds_the_name(self, judge, pattern):
+        # A capture pattern rebinds the module global while the module runs,
+        # and it carries its target as a plain `str` (`MatchAs.name`,
+        # `MatchStar.name`, `MatchMapping.rest`) that a generic AST walk never
+        # reaches, so these statements all used to look safe.
+        by_source = codes_by_source(
+            judge(
+                f"""
+                import decimal
+
+                match VALUE:
+                    {pattern}
+                        pass
+
+
+                def helper():
+                    return decimal
+                """
+            )
+        )
+
+        assert "MODULE_LEVEL_USE" in by_source["import decimal"]
+
+    def test_a_wildcard_case_binds_nothing_and_is_not_a_use(self, judge):
+        # `case _:` parses as MatchAs(name=None); reading it as a rebinding
+        # would reject every module holding a match statement.
+        verdicts = judge(
+            """
+            import decimal
+
+            match VALUE:
+                case _:
+                    pass
+
+
+            def helper():
+                return decimal
+            """
+        )
+
+        assert verdicts[0].is_safe
+
+    def test_a_match_capture_inside_a_function_binds_a_local_not_the_global(
+        self, judge
+    ):
+        # A capture in a function body shadows the import locally; it says
+        # nothing about the module-level name, so the statement stays safe.
+        verdicts = judge(
+            """
+            import decimal
+
+
+            def helper(value):
+                match value:
+                    case decimal:
+                        return decimal
+                return None
+
+
+            def other():
+                return decimal.Decimal(1)
+            """
+        )
+
+        assert verdicts[0].is_safe
+
+
+class TestOpaqueExports:
     @pytest.mark.parametrize(
         "mutation",
         [
@@ -306,7 +399,7 @@ class TestModuleLevelUse:
             )
         )
 
-        assert "MODULE_LEVEL_USE" in by_source["import decimal"]
+        assert "OPAQUE_EXPORTS" in by_source["import decimal"]
 
     def test_a_non_string_entry_makes_all_unreadable(self, judge):
         by_source = codes_by_source(
@@ -323,9 +416,31 @@ class TestModuleLevelUse:
             )
         )
 
-        assert "MODULE_LEVEL_USE" in by_source["import decimal"]
+        assert "OPAQUE_EXPORTS" in by_source["import decimal"]
 
     def test_an_unreadable_all_rejects_everything_in_the_module(self, judge):
+        by_source = codes_by_source(
+            judge(
+                """
+                import decimal
+                import json
+
+                __all__ = sorted(dir())
+
+
+                def helper():
+                    return decimal, json
+                """
+            )
+        )
+
+        assert by_source["import decimal"] == {"OPAQUE_EXPORTS"}
+        assert by_source["import json"] == {"OPAQUE_EXPORTS"}
+
+    def test_it_does_not_masquerade_as_a_module_level_use(self, judge):
+        # The whole point of the separate code: nothing here is read while the
+        # module executes, so scripts branching on MODULE_LEVEL_USE would have
+        # been told to go looking for an import-time read that does not exist.
         by_source = codes_by_source(
             judge(
                 """
@@ -340,23 +455,22 @@ class TestModuleLevelUse:
             )
         )
 
-        assert "MODULE_LEVEL_USE" in by_source["import decimal"]
+        assert "MODULE_LEVEL_USE" not in by_source["import decimal"]
 
-    def test_a_global_rebinding_counts_as_an_import_time_use(self, judge):
-        by_source = codes_by_source(
-            judge(
-                """
-                import decimal
+    def test_a_literal_all_leaves_the_rule_silent(self, judge):
+        verdicts = judge(
+            """
+            import decimal
+
+            __all__ = ["helper"]
 
 
-                def helper():
-                    global decimal
-                    decimal = None
-                """
-            )
+            def helper():
+                return decimal
+            """
         )
 
-        assert "MODULE_LEVEL_USE" in by_source["import decimal"]
+        assert verdicts[0].is_safe
 
 
 class TestReexportInInit:

@@ -19,11 +19,6 @@ _USE_MESSAGE = (
     "proxy would reify immediately, so laziness buys nothing and only moves "
     "when ImportError surfaces (PEP 810 S11/S13)"
 )
-_DYNAMIC_EXPORT_MESSAGE = (
-    "this module's `__all__` is not a literal list of strings, so no name can "
-    "be proven unexported; a lazy `from ... import` does not publish the name "
-    "the way a re-export consumer expects (PEP 810 S9)"
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,8 +45,6 @@ class ModuleLevelUseRule:
         context: ModuleContext,
     ) -> Violation | None:
         """Fire on any import-time read of a bound name."""
-        if not context.has_literal_exports:
-            return Violation(code=self.code, message=_DYNAMIC_EXPORT_MESSAGE)
         used = [
             name
             for name in context.bound_names(statement)

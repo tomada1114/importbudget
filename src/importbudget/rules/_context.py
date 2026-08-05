@@ -26,8 +26,12 @@ such a statement is judged safe.  Converting it is not a syntax error and does
 not change what the module ends up doing, but the proxy reifies before the
 module finishes: the conversion saves nothing and merely moves the load, and
 any ``ImportError``, to the call site — an import-order shift in the sense of
-S14.  Detecting it needs a module-level call graph; until then the predicted
-saving is an upper bound, which is what :mod:`importbudget.plan_report` says.
+S14.  Detecting it *here* needs a module-level call graph, which is issue #21;
+until then the predicted saving is an upper bound, as
+:mod:`importbudget.plan_report` says, and
+:func:`importbudget._lazy_gap.names_reached_during_import` catches the common
+shape late enough to raise
+:attr:`~importbudget.applies.FlagCode.MODULE_LEVEL_CALL` on the conversion.
 """
 
 from __future__ import annotations
@@ -227,8 +231,30 @@ def _collect_names(
         for statement in node.body:
             _collect_names(statement, is_eager=False, eager=eager, deferred=deferred)
         return
+    if is_eager:
+        # A capture pattern rebinds a module global while the module runs, and
+        # its target is a plain `str` the walk below cannot reach. As with
+        # `global`, the rebinding makes the name's identity unstable, so it
+        # counts as an import-time use. Captures inside a function bind a local
+        # instead, and say nothing about the imported name.
+        eager.update(_captured_names(node))
     for child in ast.iter_child_nodes(node):
         _collect_names(child, is_eager=is_eager, eager=eager, deferred=deferred)
+
+
+def _captured_names(node: ast.AST) -> tuple[str, ...]:
+    """Return the name a ``match`` capture pattern binds, if it binds one.
+
+    ``case json:`` and ``case [*json]:`` carry it as ``name``, ``case {**json}:``
+    as ``rest``; all three are plain strings rather than :class:`ast.Name`
+    nodes, so a generic AST walk never sees them (a wildcard ``case _:`` parses
+    as ``MatchAs(name=None)`` and binds nothing).
+    """
+    if isinstance(node, ast.MatchAs | ast.MatchStar):
+        return () if node.name is None else (node.name,)
+    if isinstance(node, ast.MatchMapping):
+        return () if node.rest is None else (node.rest,)
+    return ()
 
 
 def _returns(node: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[ast.expr, ...]:

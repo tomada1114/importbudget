@@ -45,6 +45,14 @@ class RuleCode(StrEnum):
     REEXPORT_IN_INIT = "REEXPORT_IN_INIT"
     """A package ``__init__.py`` re-export, i.e. public API surface (S9)."""
 
+    OPAQUE_EXPORTS = "OPAQUE_EXPORTS"
+    """The module's ``__all__`` cannot be read statically, so nothing is provable.
+
+    Distinct from :attr:`MODULE_LEVEL_USE` on purpose: nothing need be read
+    while the module executes; what cannot be established is which names the
+    module publishes (S9).
+    """
+
     UNUSED_IMPORT = "UNUSED_IMPORT"
     """The bound name is never read: presumed imported for side effects (S13)."""
 

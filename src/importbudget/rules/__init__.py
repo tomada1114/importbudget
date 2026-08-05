@@ -24,6 +24,7 @@ from ._rule import Rule, RuleCode, Violation
 from .future_import import FutureImportRule
 from .module_level_use import ModuleLevelUseRule
 from .non_toplevel import NonToplevelRule
+from .opaque_exports import OpaqueExportsRule
 from .reexport_init import ReexportInInitRule
 from .star_import import StarImportRule
 from .try_except import TryExceptImportRule
@@ -35,6 +36,7 @@ __all__ = [
     "ModuleContext",
     "ModuleLevelUseRule",
     "NonToplevelRule",
+    "OpaqueExportsRule",
     "Placement",
     "ReexportInInitRule",
     "Rule",
@@ -54,5 +56,6 @@ RULES: tuple[Rule, ...] = (
     TryExceptImportRule(),
     ModuleLevelUseRule(),
     ReexportInInitRule(),
+    OpaqueExportsRule(),
     UnusedImportRule(),
 )
