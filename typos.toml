@@ -1,2 +1,7 @@
 [files]
 extend-exclude = ["uv.lock"]
+
+[default.extend-words]
+# "mis-nested", "mis-reads", "mis-track": the English prefix, not a typo for
+# "miss" or "mist".
+mis = "mis"
