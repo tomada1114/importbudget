@@ -87,7 +87,15 @@ from .report import (
     render_table,
     to_json_dict,
 )
-from .rules import RULES, Rule, RuleCode, Violation
+from .rules import (
+    RULES,
+    ModuleContext,
+    Placement,
+    Rule,
+    RuleCode,
+    Violation,
+    build_context,
+)
 from .stderr import ForeignStderr
 from .verifies import (
     SIGNIFICANCE_SIGMA,
@@ -142,6 +150,8 @@ __all__ = [
     "ImportBudgetError",
     "Measurement",
     "MeasurementError",
+    "ModuleContext",
+    "Placement",
     "PlanEntry",
     "PlanInputError",
     "PlanOptions",
@@ -163,6 +173,7 @@ __all__ = [
     "__version__",
     "analyze",
     "apply",
+    "build_context",
     "check",
     "plan",
     "plan_from_profile",
