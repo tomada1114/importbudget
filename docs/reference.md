@@ -50,6 +50,18 @@
 
 ::: importbudget.codemod
 
+## Verification
+
+::: importbudget.verifies
+
+::: importbudget.verify
+
+## Budget gate
+
+::: importbudget.budgets
+
+::: importbudget.check
+
 ## Reporting
 
 ::: importbudget.report
@@ -57,6 +69,10 @@
 ::: importbudget.plan_report
 
 ::: importbudget.apply_report
+
+::: importbudget.verify_report
+
+::: importbudget.check_report
 
 ## Command line
 

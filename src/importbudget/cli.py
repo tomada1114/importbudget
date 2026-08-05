@@ -13,6 +13,9 @@ from typing import TYPE_CHECKING
 from ._version import __version__
 from .applies import NATIVE_TARGET_VERSION, TARGET_VERSIONS, ApplyOptions
 from .apply_report import render_apply_json, render_apply_table
+from .budgets import Budget, CheckOptions
+from .check import check
+from .check_report import render_check_json, render_check_table
 from .codemod import apply
 from .errors import ImportBudgetError
 from .measure import DEFAULT_RUNS, DEFAULT_WARMUP_RUNS, Entrypoint, RunOptions
@@ -21,6 +24,14 @@ from .planner import plan, plan_from_profile
 from .plans import PlanOptions
 from .profiler import profile
 from .report import render_json, render_table
+from .verifies import (
+    DEFAULT_DIVERGENCE_THRESHOLD,
+    DEFAULT_VERIFY_RUNS,
+    DEFAULT_VERIFY_WARMUP,
+    VerifyOptions,
+)
+from .verify import verify
+from .verify_report import render_verify_json, render_verify_table
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -54,6 +65,8 @@ def build_parser() -> argparse.ArgumentParser:
     _add_profile_parser(subparsers)
     _add_plan_parser(subparsers)
     _add_apply_parser(subparsers)
+    _add_verify_parser(subparsers)
+    _add_check_parser(subparsers)
     return parser
 
 
@@ -174,6 +187,141 @@ def _add_apply_parser(
     )
 
 
+def _add_verify_parser(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Register the ``verify`` subcommand and its flags."""
+    verify_parser = subparsers.add_parser(
+        "verify",
+        help="measure a plan's conversion before and after, and compare them",
+        description=(
+            "Re-measure the plan's entrypoint on two scratch copies of its "
+            "source — one unconverted, one converted — in strictly interleaved "
+            "pairs, and report the delta with its standard deviation. An "
+            "improvement is claimed only above 3 sigma. Your own files are "
+            "never touched."
+        ),
+    )
+    verify_parser.add_argument(
+        "plan",
+        metavar="PLAN",
+        help="a document written by `importbudget plan --json`",
+    )
+    verify_parser.add_argument(
+        "--target-version",
+        default=NATIVE_TARGET_VERSION,
+        choices=TARGET_VERSIONS,
+        metavar="X.Y",
+        help=(
+            f"interpreter the converted tree is emitted for; it has to be one "
+            f"this interpreter can run, since this interpreter measures it "
+            f"(default: {NATIVE_TARGET_VERSION})"
+        ),
+    )
+    verify_parser.add_argument(
+        "--runs",
+        type=int,
+        default=DEFAULT_VERIFY_RUNS,
+        metavar="N",
+        help=f"interleaved before/after pairs to measure (default: {DEFAULT_VERIFY_RUNS})",
+    )
+    verify_parser.add_argument(
+        "--warmup",
+        type=int,
+        default=DEFAULT_VERIFY_WARMUP,
+        metavar="N",
+        help=(
+            f"pairs discarded before measuring, to pay the cold page cache on "
+            f"both trees (default: {DEFAULT_VERIFY_WARMUP})"
+        ),
+    )
+    verify_parser.add_argument(
+        "--divergence-threshold",
+        type=float,
+        default=DEFAULT_DIVERGENCE_THRESHOLD,
+        metavar="X",
+        help=(
+            f"warn when the plan's predicted saving and the measured one differ "
+            f"by more than this fraction (default: {DEFAULT_DIVERGENCE_THRESHOLD})"
+        ),
+    )
+    verify_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="emit the machine-readable JSON document instead of the report",
+    )
+
+
+def _add_check_parser(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """Register the ``check`` subcommand and its flags."""
+    check_parser = subparsers.add_parser(
+        "check",
+        help="fail when an entrypoint's import cost exceeds a budget",
+        description=(
+            "Measure an entrypoint's import time, excluding interpreter "
+            "startup, and compare it with --max. Exits 0 within budget "
+            "(equality included), 1 over budget, and 2 when the entrypoint "
+            "could not be measured at all."
+        ),
+    )
+    check_parser.add_argument(
+        "entrypoint",
+        help="module to import, module to run with -m, or a script path",
+    )
+    check_parser.add_argument(
+        "-m",
+        "--module",
+        action="store_true",
+        help="run the entrypoint with -m instead of importing it",
+    )
+    check_parser.add_argument(
+        "--max",
+        required=True,
+        type=_budget,
+        metavar="DURATION",
+        help="budget with a unit, such as 150ms or 0.15s; a bare number is refused",
+    )
+    check_parser.add_argument(
+        "--runs",
+        type=int,
+        default=DEFAULT_RUNS,
+        metavar="N",
+        help=f"measured runs to average (default: {DEFAULT_RUNS})",
+    )
+    check_parser.add_argument(
+        "--warmup",
+        type=int,
+        default=DEFAULT_WARMUP_RUNS,
+        metavar="N",
+        help=(
+            f"runs discarded before measuring, to pay the cold page cache "
+            f"(default: {DEFAULT_WARMUP_RUNS})"
+        ),
+    )
+    check_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="emit the machine-readable JSON document instead of the report",
+    )
+
+
+def _budget(text: str) -> Budget:
+    """Parse ``--max`` for argparse, which reports the failure and exits 2.
+
+    Raises:
+        argparse.ArgumentTypeError: The value is not a duration with a unit.
+            Routing it through argparse rather than the command body keeps a
+            mistyped budget out of exit code 1, which means "over budget" and
+            would read as a regression that never happened.
+    """
+    try:
+        return Budget.parse(text)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+
+
 def _add_measurement_flags(profile_parser: argparse.ArgumentParser) -> None:
     """Register the flags controlling how much is measured and shown."""
     profile_parser.add_argument(
@@ -218,6 +366,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     Returns:
         Process exit code: 0 on success, 1 when the subcommand failed.
+        ``check`` additionally returns its own verdict, where 1 means "over
+        budget" and 2 means "the entrypoint could not be measured".
     """
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -225,6 +375,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "profile": _run_profile,
         "plan": _run_plan,
         "apply": _run_apply,
+        "verify": _run_verify,
+        "check": _run_check,
     }
     try:
         return commands[args.command](args)
@@ -269,6 +421,37 @@ def _run_apply(args: argparse.Namespace) -> int:
     output = render_apply_json(result) if args.json else render_apply_table(result)
     print(output)  # noqa: T201 — stdout is this command's output channel
     return _EXIT_OK
+
+
+def _run_verify(args: argparse.Namespace) -> int:
+    """Execute the ``verify`` subcommand."""
+    options = VerifyOptions(
+        run=RunOptions(runs=args.runs, warmup=args.warmup),
+        target_version=args.target_version,
+        divergence_threshold=args.divergence_threshold,
+    )
+    result = verify(args.plan, options)
+    output = render_verify_json(result) if args.json else render_verify_table(result)
+    print(output)  # noqa: T201 — stdout is this command's output channel
+    return _EXIT_OK
+
+
+def _run_check(args: argparse.Namespace) -> int:
+    """Execute the ``check`` subcommand.
+
+    Returns:
+        The gate's own exit code: 0 within budget, 1 over it, 2 when the
+        entrypoint could not be measured.
+    """
+    entrypoint = Entrypoint.parse(args.entrypoint, run_module=args.module)
+    options = CheckOptions(
+        budget=args.max,
+        run=RunOptions(runs=args.runs, warmup=args.warmup),
+    )
+    result = check(entrypoint, options)
+    output = render_check_json(result) if args.json else render_check_table(result)
+    print(output)  # noqa: T201 — stdout is this command's output channel
+    return result.exit_code
 
 
 def _plan_result(args: argparse.Namespace) -> PlanResult:

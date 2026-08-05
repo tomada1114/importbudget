@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `importbudget verify <plan.json>` — measures the plan's conversion instead of
+  trusting its prediction. Copies the source root twice, once unconverted and
+  once converted, and re-measures the entrypoint on both in strictly
+  interleaved before/after pairs; the reported statistic is the mean of the
+  per-pair differences, so machine drift moves both sides of a pair rather than
+  one arm of the comparison. Your own files are never written to. Supports
+  `--runs` / `--warmup` / `--target-version` / `--divergence-threshold` /
+  `--json`
+- A 3 sigma significance rule on `verify`: an improvement is claimed only when
+  `3 sigma` is *strictly* below the absolute delta, so a delta sitting exactly
+  on the noise floor is reported as no result. A delta too small to see in the
+  raw totals is retried against a subtree the conversion left structurally
+  identical, measured in the same run, which cancels most of the machine-load
+  noise the two share. Both comparisons are always reported
+- A divergence warning naming the plan's predicted saving and the measured one
+  whenever they differ by more than `--divergence-threshold` (default 30%),
+  plus a sanity warning when the measured saving exceeds the cost statement
+  conversion could remove at all
+- `importbudget check <entrypoint> --max <budget>` — the CI gate. Measures
+  import cost excluding interpreter startup and exits 0 at or below the budget
+  (equality passes), 1 over it, and 2 when the entrypoint could not be measured
+  at all, so a crashing entrypoint is never reported as a pass or as a
+  regression. `--max` accepts `us` / `ms` / `s`; a bare number is refused with
+  an error naming it
+- Versioned JSON verify and check documents (`schema_version` 1, `document`
+  `"verify"` / `"check"`), the verify document carrying the executed run
+  schedule, every measured sample, and both the raw and normalized comparisons
+- A copy-pasteable GitHub Actions recipe in the README, run by this
+  repository's own CI against importbudget itself
+- Public API: `verify()`, `check()`, `render_verify_table()` /
+  `render_verify_json()` / `to_verify_json_dict()`, `render_check_table()` /
+  `render_check_json()` / `to_check_json_dict()`, and the `Budget`,
+  `Comparison`, `VerifyOptions`, `VerifyResult`, `CheckOptions`, `CheckResult`
+  dataclasses
 - `importbudget apply <plan.json>` — rewrites the statements a plan proved safe
   into PEP 810 `lazy` imports with LibCST. Defaults to a dry run printing a
   unified diff; `--write` applies it. Converts only module-top-level statements

@@ -61,9 +61,11 @@ if TYPE_CHECKING:
 
 __all__ = [
     "APPLY_DOCUMENT",
+    "CHECK_DOCUMENT",
     "PLAN_DOCUMENT",
     "PROFILE_DOCUMENT",
     "SCHEMA_VERSION",
+    "VERIFY_DOCUMENT",
     "render_json",
     "render_table",
     "to_json_dict",
@@ -80,6 +82,12 @@ PLAN_DOCUMENT = "plan"
 
 #: ``document`` discriminator of the apply document.
 APPLY_DOCUMENT = "apply"
+
+#: ``document`` discriminator of the verify document.
+VERIFY_DOCUMENT = "verify"
+
+#: ``document`` discriminator of the check document.
+CHECK_DOCUMENT = "check"
 
 _US_PER_MS = 1000.0
 _MAX_SOURCE_WIDTH = 48

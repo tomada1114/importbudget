@@ -10,8 +10,14 @@ import sys
 import pytest
 
 from importbudget.applies import NATIVE_TARGET_VERSION
+from importbudget.budgets import Budget
 from importbudget.cli import DEFAULT_TOP, build_parser, main
 from importbudget.entrypoints import DEFAULT_RUNS, DEFAULT_WARMUP_RUNS
+from importbudget.verifies import (
+    DEFAULT_DIVERGENCE_THRESHOLD,
+    DEFAULT_VERIFY_RUNS,
+    DEFAULT_VERIFY_WARMUP,
+)
 
 
 class TestParser:
@@ -409,3 +415,202 @@ class TestEndToEnd:
         )
 
         assert "run_demo.py:3" in completed.stdout
+
+
+class TestVerifyAndCheckParser:
+    def test_verify_defaults_ask_for_more_pairs_than_profile_asks_for_runs(self):
+        args = build_parser().parse_args(["verify", "plan.json"])
+
+        assert args.command == "verify"
+        assert args.plan == "plan.json"
+        assert args.runs == DEFAULT_VERIFY_RUNS
+        assert args.warmup == DEFAULT_VERIFY_WARMUP
+        assert args.divergence_threshold == DEFAULT_DIVERGENCE_THRESHOLD
+        assert args.target_version == NATIVE_TARGET_VERSION
+        assert args.json is False
+
+    def test_verify_flags_are_parsed(self):
+        args = build_parser().parse_args(
+            [
+                "verify",
+                "plan.json",
+                "--runs",
+                "9",
+                "--warmup",
+                "2",
+                "--divergence-threshold",
+                "0.5",
+                "--target-version",
+                "3.13",
+                "--json",
+            ]
+        )
+
+        assert (args.runs, args.warmup, args.divergence_threshold) == (9, 2, 0.5)
+        assert (args.target_version, args.json) == ("3.13", True)
+
+    def test_check_defaults_match_the_profile_command(self):
+        args = build_parser().parse_args(["check", "demopkg", "--max", "150ms"])
+
+        assert args.command == "check"
+        assert args.entrypoint == "demopkg"
+        assert args.max == Budget.parse("150ms")
+        assert args.runs == DEFAULT_RUNS
+        assert args.warmup == DEFAULT_WARMUP_RUNS
+        assert args.module is False
+        assert args.json is False
+
+    @pytest.mark.parametrize(
+        "text",
+        [pytest.param("150ms", id="milliseconds"), pytest.param("0.15s", id="seconds")],
+    )
+    def test_both_documented_budget_forms_reach_the_same_value(self, text):
+        args = build_parser().parse_args(["check", "demopkg", "--max", text])
+
+        assert args.max.us == 150_000
+
+    def test_a_budget_is_required(self):
+        with pytest.raises(SystemExit) as exit_info:
+            build_parser().parse_args(["check", "demopkg"])
+
+        assert exit_info.value.code == 2
+
+    def test_an_unparsable_budget_exits_naming_the_value(self, capsys):
+        with pytest.raises(SystemExit) as exit_info:
+            build_parser().parse_args(["check", "demopkg", "--max", "notaduration"])
+
+        assert exit_info.value.code != 0
+        assert "notaduration" in capsys.readouterr().err
+
+
+class TestCheckCommand:
+    def test_a_generous_budget_exits_zero(self, project_dir, monkeypatch, capsys):
+        monkeypatch.chdir(project_dir)
+
+        code = main(
+            ["check", "demopkg", "--max", "30s", "--runs", "1", "--warmup", "0"]
+        )
+
+        assert code == 0
+        assert "within budget" in capsys.readouterr().out
+
+    def test_a_tiny_budget_exits_one(self, project_dir, monkeypatch, capsys):
+        monkeypatch.chdir(project_dir)
+
+        code = main(
+            ["check", "demopkg", "--max", "1us", "--runs", "1", "--warmup", "0"]
+        )
+
+        assert code == 1
+        assert "OVER BUDGET" in capsys.readouterr().out
+
+    def test_an_unmeasurable_entrypoint_exits_two(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+
+        code = main(
+            [
+                "check",
+                "no_such_module_xyz",
+                "--max",
+                "30s",
+                "--runs",
+                "1",
+                "--warmup",
+                "0",
+            ]
+        )
+
+        out = capsys.readouterr().out
+        assert code == 2
+        assert "could not measure" in out
+        assert "OVER BUDGET" not in out
+
+    def test_json_output_carries_the_verdict_and_the_exit_code(
+        self, project_dir, monkeypatch, capsys
+    ):
+        monkeypatch.chdir(project_dir)
+
+        code = main(
+            [
+                "check",
+                "demopkg",
+                "--max",
+                "30s",
+                "--runs",
+                "1",
+                "--warmup",
+                "0",
+                "--json",
+            ]
+        )
+
+        document = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert document["document"] == "check"
+        assert document["outcome"] == "within"
+        assert document["exit_code"] == 0
+
+
+class TestVerifyCommand:
+    def test_the_table_reports_the_interleaved_schedule(
+        self, make_plan, monkeypatch, tmp_path, capsys
+    ):
+        plan_path = make_plan("import decimal\n\nVALUE = 1\n")
+        monkeypatch.chdir(tmp_path)
+
+        code = main(
+            [
+                "verify",
+                str(plan_path),
+                "--runs",
+                "2",
+                "--warmup",
+                "0",
+                "--target-version",
+                "3.12",
+            ]
+        )
+
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "schedule: before after before after" in out
+
+    def test_json_output_is_machine_readable(
+        self, make_plan, monkeypatch, tmp_path, capsys
+    ):
+        plan_path = make_plan("import decimal\n\nVALUE = 1\n")
+        monkeypatch.chdir(tmp_path)
+
+        code = main(
+            [
+                "verify",
+                str(plan_path),
+                "--runs",
+                "2",
+                "--warmup",
+                "0",
+                "--target-version",
+                "3.12",
+                "--json",
+            ]
+        )
+
+        document = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert document["document"] == "verify"
+        assert document["measurement"]["schedule"] == [
+            "before",
+            "after",
+            "before",
+            "after",
+        ]
+
+    def test_a_plan_with_nothing_to_convert_exits_with_an_error_message(
+        self, make_plan, capsys
+    ):
+        plan_path = make_plan("import decimal\n", excluded=["import decimal"])
+
+        code = main(["verify", str(plan_path)])
+
+        assert code == 1
+        assert "importbudget:" in capsys.readouterr().err

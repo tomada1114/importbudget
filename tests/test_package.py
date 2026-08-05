@@ -81,8 +81,33 @@ class TestPublicApi:
             "to_apply_json_dict",
         }
 
-    def test_the_public_surface_is_exactly_these_three_groups(self):
-        assert len(__all__) == 58
+    def test_exports_the_verification_entry_points(self):
+        assert set(__all__) >= {
+            "CHECK_DOCUMENT",
+            "SIGNIFICANCE_SIGMA",
+            "VERIFY_DOCUMENT",
+            "Budget",
+            "CheckOptions",
+            "CheckOutcome",
+            "CheckResult",
+            "Comparison",
+            "ComparisonKind",
+            "Side",
+            "VerifyInputError",
+            "VerifyOptions",
+            "VerifyResult",
+            "check",
+            "render_check_json",
+            "render_check_table",
+            "render_verify_json",
+            "render_verify_table",
+            "to_check_json_dict",
+            "to_verify_json_dict",
+            "verify",
+        }
+
+    def test_the_public_surface_is_exactly_these_four_groups(self):
+        assert len(__all__) == 79
 
     def test_every_exported_name_exists(self):
         for name in __all__:
@@ -95,6 +120,7 @@ class TestPublicApi:
         assert issubclass(importbudget.PlanInputError, importbudget.ImportBudgetError)
         assert issubclass(importbudget.ApplyInputError, importbudget.ImportBudgetError)
         assert issubclass(importbudget.CodemodError, importbudget.ImportBudgetError)
+        assert issubclass(importbudget.VerifyInputError, importbudget.ImportBudgetError)
 
 
 class TestPackageMetadata:

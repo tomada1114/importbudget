@@ -152,6 +152,99 @@ result = apply("plan.json", ApplyOptions(target_version="3.15", write=True))
 print(render_apply_diff(result))
 ```
 
+## Proving the change helped
+
+`importbudget verify` answers the question `plan` cannot: *did it actually get
+faster?* It reads the same plan document, copies the source root twice — once
+unconverted, once converted — and re-measures the entrypoint on both:
+
+```bash
+importbudget verify plan.json                        # measure both sides
+importbudget verify plan.json --runs 15              # more pairs, tighter sd
+importbudget verify plan.json --target-version 3.13  # pre-3.15 fallback
+```
+
+| Flag | Meaning |
+|---|---|
+| `--runs N` | interleaved before/after pairs to measure (default 5) |
+| `--warmup N` | pairs discarded first, to pay the cold page cache on both trees (default 1) |
+| `--target-version X.Y` | interpreter the converted tree is emitted for; it must be one the measuring interpreter can run (`3.11`–`3.15`, default `3.15`) |
+| `--divergence-threshold X` | warn when predicted and measured savings differ by more than this fraction (default 0.3) |
+| `--json` | emit the machine-readable verify document instead of the report |
+
+Nothing you own is written to. Both trees are scratch copies, so `verify` works
+whether or not you have already run `apply --write`.
+
+!!! note "Why the runs alternate"
+
+    Runs are paired and strictly interleaved — before, after, before, after —
+    and the reported statistic is the mean of the *per-pair differences*. A
+    machine that slows down halfway through the session then moves both sides
+    of a pair rather than one arm of the comparison. The order actually
+    executed is printed as `schedule:` and carried in the JSON, so you can
+    check it.
+
+!!! warning "An improvement is claimed only above 3 sigma"
+
+    Warm-run coefficients of variation between 7% and 26% are normal. If
+    `3 sigma` is not *strictly* below the absolute delta, importbudget reports
+    "no significant change" rather than a small win — a delta sitting exactly
+    on the noise floor is no result.
+
+    A delta too small to see in the raw totals is retried against a subtree the
+    conversion left structurally identical, measured in the same run. Dividing
+    one by the other cancels most of the machine-load noise the two share. Both
+    comparisons are always reported; the verdict says which one it rested on.
+
+```python
+from importbudget import RunOptions, VerifyOptions, render_verify_table, verify
+
+result = verify("plan.json", VerifyOptions(run=RunOptions(runs=15)))
+print(render_verify_table(result))
+```
+
+## Enforcing a budget in CI
+
+`importbudget check` measures an entrypoint's import cost — excluding
+interpreter startup — and compares it with a ceiling:
+
+```bash
+importbudget check mypackage --max 150ms   # same budget, either spelling
+importbudget check mypackage --max 0.15s
+importbudget check -m mypackage.cli --max 150ms --json
+```
+
+| Flag | Meaning |
+|---|---|
+| `--max DURATION` | required; a number and a unit (`us`, `ms`, `s`). A bare `150` is refused |
+| `--runs N` / `--warmup N` | as for `profile` (defaults 3 and 1) |
+| `--json` | emit the machine-readable check document instead of the summary |
+
+| Exit code | Meaning |
+|---|---|
+| `0` | measured cost is at or below the budget — equality passes |
+| `1` | measured cost exceeds the budget |
+| `2` | the entrypoint could not be measured, so the budget was never tested |
+
+!!! note "Why three exit codes"
+
+    A crashing entrypoint imports less than a working one. Reporting that as
+    "within budget" would hide the breakage, and reporting it as "over budget"
+    would invent a regression, so it gets its own code. A `--max` value that
+    cannot be parsed also exits non-zero naming the offending text, and never
+    as `1`.
+
+Add it to GitHub Actions with the recipe in the
+[README](https://github.com/tomada1114/importbudget#continuous-integration).
+
+```python
+from importbudget import Budget, check, render_check_table
+
+result = check("mypackage", Budget.parse("150ms"))
+print(render_check_table(result))
+raise SystemExit(result.exit_code)
+```
+
 ## What's Next?
 
 See the [API Reference](reference.md) for the complete API documentation.

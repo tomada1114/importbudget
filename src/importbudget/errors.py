@@ -27,6 +27,15 @@ class ApplyInputError(ImportBudgetError):
     """A saved plan document could not be consumed by ``apply``."""
 
 
+class VerifyInputError(ImportBudgetError):
+    """A saved plan document gives ``verify`` nothing to compare.
+
+    Raised when the plan's conversion changes no source at all — an empty
+    plan, or one already written to disk — because measuring two identical
+    trees would report a delta of zero as if it were a finding.
+    """
+
+
 class CodemodError(ImportBudgetError):
     """The codemod was asked to convert a statement it must never convert.
 

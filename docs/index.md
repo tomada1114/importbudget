@@ -65,6 +65,25 @@ print(render_apply_diff(apply("plan.json", ApplyOptions(write=True))))
 statements into the four grammar forms that are safe to emit, and is a no-op
 when re-run.
 
+Then prove it helped, and keep it that way:
+
+```bash
+importbudget verify plan.json              # measure both sides, report delta ± sd
+importbudget check mypackage --max 150ms   # CI gate: exit 1 when over budget
+```
+
+```python
+from importbudget import Budget, check, render_verify_table, verify
+
+print(render_verify_table(verify("plan.json")))
+raise SystemExit(check("mypackage", Budget.parse("150ms")).exit_code)
+```
+
+`verify` measures both source trees itself, in strictly interleaved pairs, and
+refuses to claim an improvement below 3 sigma — a prediction is not a result.
+`check` exits 0 at or below the budget, 1 over it, and 2 when the entrypoint
+could not be measured at all.
+
 ## Next Steps
 
 - [Getting Started](getting-started.md) — setup and first steps
